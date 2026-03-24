@@ -1,0 +1,110 @@
+name: Build SudoDEM3D
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - SudoDEM3D/**
+      - .github/workflows/SudoDEM3Dbuild.yml
+  pull_request:
+    branches: [main, master]
+    paths:
+      - SudoDEM3D/**
+  workflow_dispatch:
+
+env:
+  BUILD_TYPE: Release
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  SudoDEM3Dbuild:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+        python: ["3.10", "3.12"]
+        exclude:
+          - os: ubuntu-22.04
+            python: "3.12"
+          - os: ubuntu-24.04
+            python: "3.10"
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python }}
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/pip
+          3rdlib
+        key: ${{ runner.os }}-${{ matrix.python }}-${{ hashFiles('**/install3rd_base.sh') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ matrix.python }}-
+          ${{ runner.os }}-
+
+    - name: Install system dependencies
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential cmake zlib1g-dev \
+          freeglut3-dev libbz2-dev libglib2.0 \
+          python3-dev python3-pip python3-tk \
+          qtbase5-dev qt5-qmake libqt5svg5-dev \
+          libqt5webkit5-dev libqt5designer5
+        python3 -m pip install --upgrade pip numpy matplotlib xlib ipython setuptools
+        mkdir -p 3rdlib/3rdlibs/py
+
+    - name: Install 3rd party libs
+      shell: bash
+      run: |
+        cd scripts
+        sh install3rd_base.sh
+
+    - name: Compile 3rdlibs (optional)
+      if: false
+      shell: bash
+      run: |
+        cd scripts
+        sh install3rdcore_sudosimlab.sh
+
+    - name: Download precompiled 3rdlibs
+      shell: bash
+      run: |
+        mkdir -p 3rdlib/3rdlibs/py
+        wget -q https://github.com/SudoDEM/3rdlibs/releases/latest/download/tools-${{ matrix.os }}.tar.xz
+        tar xf tools-${{ matrix.os }}.tar.xz
+        wget -q https://github.com/SudoDEM/3rdlibs/releases/latest/download/3rdlibs-${{ matrix.os }}.tar.xz
+        tar xf 3rdlibs-${{ matrix.os }}.tar.xz
+        cd 3rdlib
+        cp -rf HeaderLib/lib/* 3rdlibs/
+        cp -r HeaderLib/lib/py/* 3rdlibs/py/
+
+    - name: Compile SudoDEM3D
+      shell: bash
+      run: |
+        cd scripts
+        sh firstCompile_SudoDEM3D.sh
+
+    - name: Archive compiled SudoDEM3D
+      working-directory: ${{ github.workspace }}/
+      run: |
+        tar cfJ SudoDEM3D-${{ matrix.os }}-py${{ matrix.python }}.tar.xz sudodeminstall
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: SudoDEM3D-${{ matrix.os }}-py${{ matrix.python }}
+        path: ${{ github.workspace }}/SudoDEM3D-${{ matrix.os }}-py${{ matrix.python }}.tar.xz
+        retention-days: 7

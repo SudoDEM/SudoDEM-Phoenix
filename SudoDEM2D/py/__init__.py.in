@@ -1,0 +1,57 @@
+# 1. it tells python that sudodem (this directory) is package of python modules
+#
+# 2. import the runtime namespace (will be populated from within c++)
+#
+
+"""Common initialization core for sudodem.
+
+This file is executed when anything is imported from sudodem for the first time.
+It loads sudodem plugins and injects c++ class constructors to the builtins
+namespace, making them available everywhere.
+"""
+
+import ctypes,sys,os
+
+# Python 3 only - removed setdlopenflags which caused symbol resolution conflicts
+# with pybind11 modules
+
+# Import the wrapper module using standard Python import
+from . import wrapper
+
+# Expose all wrapper symbols in sudodem namespace for easy access
+# This makes classes like NewtonIntegrator, ForceResetter, etc. available directly
+import builtins
+for name in dir(wrapper):
+    if not name.startswith('_'):
+        if not hasattr(globals(), name):  # Only add if not already defined
+            globals()[name] = getattr(wrapper, name)
+
+# Expose submodules from wrapper for backward compatibility
+# Make them available in the sudodem namespace
+_utils = wrapper._utils
+_customConverters = wrapper._customConverters
+_superellipse_utils = wrapper._superellipse_utils
+WeightedAverage2d = wrapper.WeightedAverage2d
+
+# Also make them importable as sudodem._utils, etc.
+sys.modules['sudodem._utils'] = _utils
+sys.modules['sudodem._customConverters'] = _customConverters
+sys.modules['sudodem._superellipse_utils'] = _superellipse_utils
+sys.modules['sudodem.WeightedAverage2d'] = WeightedAverage2d
+
+try:
+	from minieigen import *
+except ImportError:
+	from miniEigen import *
+
+try:
+	import minieigen
+except ImportError:
+	import miniEigen
+
+# Import utils
+from sudodem import utils
+
+# make O and wrapper.Omega part of builtins
+builtins.__dict__['O'] = wrapper.O
+builtins.__dict__['Omega'] = wrapper.Omega

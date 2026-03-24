@@ -1,0 +1,99 @@
+name: Release
+
+on:
+  release:
+    types: [prereleased, released]
+  workflow_dispatch:
+
+env:
+  BUILD_TYPE: Release
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+        package: [SudoDEM2D, SudoDEM3D]
+        include:
+          - os: ubuntu-22.04
+            python: "3.10"
+          - os: ubuntu-24.04
+            python: "3.12"
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python }}
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/pip
+          3rdlib
+        key: ${{ runner.os }}-${{ matrix.python }}-${{ matrix.package }}-${{ hashFiles('**/install3rd_base.sh') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ matrix.python }}-${{ matrix.package }}-
+          ${{ runner.os }}-${{ matrix.python }}-
+
+    - name: Install system dependencies
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential cmake zlib1g-dev \
+          freeglut3-dev libbz2-dev libglib2.0 \
+          python3-dev python3-pip python3-tk \
+          qtbase5-dev qt5-qmake libqt5svg5-dev \
+          libqt5webkit5-dev libqt5designer5
+        python3 -m pip install --upgrade pip numpy matplotlib xlib ipython setuptools
+        mkdir -p 3rdlib/3rdlibs/py
+
+    - name: Download precompiled 3rdlibs
+      shell: bash
+      run: |
+        mkdir -p 3rdlib/3rdlibs/py
+        wget -q https://github.com/SudoDEM/3rdlibs/releases/latest/download/tools-${{ matrix.os }}.tar.xz
+        tar xf tools-${{ matrix.os }}.tar.xz
+        wget -q https://github.com/SudoDEM/3rdlibs/releases/latest/download/3rdlibs-${{ matrix.os }}.tar.xz
+        tar xf 3rdlibs-${{ matrix.os }}.tar.xz
+        cd 3rdlib
+        cp -rf HeaderLib/lib/* 3rdlibs/
+        cp -r HeaderLib/lib/py/* 3rdlibs/py/
+
+    - name: Compile ${{ matrix.package }}
+      shell: bash
+      run: |
+        cd scripts
+        sh firstCompile_${{ matrix.package }}.sh
+
+    - name: Archive compiled ${{ matrix.package }}
+      working-directory: ${{ github.workspace }}/
+      run: |
+        tar cfJ ${{ matrix.package }}-${{ matrix.os }}.tar.xz sudodeminstall
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.package }}-${{ matrix.os }}
+        path: ${{ github.workspace }}/${{ matrix.package }}-${{ matrix.os }}.tar.xz
+        retention-days: 30
+
+    - name: Upload to release
+      if: github.event_name == 'release'
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: ${{ github.workspace }}/${{ matrix.package }}-${{ matrix.os }}.tar.xz
+        tag: ${{ github.ref }}
+        overwrite: true

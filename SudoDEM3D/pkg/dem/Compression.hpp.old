@@ -1,0 +1,383 @@
+/*************************************************************************
+*  Copyright (C) 2016 by Zhswee                                          *
+*  zhswee@gmail.com                                                      *
+*                                                                        *
+*  This program is free software; it is licensed under the terms of the  *
+*  GNU General Public License v2 or later. See file LICENSE for details. *
+*************************************************************************/
+
+#pragma once
+
+#include<sudodem/pkg/common/BoundaryController.hpp>
+#include<sudodem/core/Scene.hpp>
+#include<sudodem/lib/base/Math.hpp>
+#include<sudodem/pkg/dem/Superquadrics.hpp>
+#include<array>
+#include<sudodem/core/PartialEngine.hpp>
+#include<sudodem/pkg/common/Facet.hpp>
+#include"sudodem/pkg/dem/NewtonIntegrator.hpp"
+#include<fstream>
+#include<string>
+#ifdef SUDODEM_OPENMP
+	#include<omp.h>
+#endif
+
+#define CUBIC_SAMPLE//
+#define SOLE_GAIN //move two walls with their corresponding gain in the same direction
+//testing contact model
+#define FM//FricMat
+#define NEW_SCHEME //using the new scheme for consolidation
+
+class State;
+
+class Scene;
+class State;
+
+
+/*! \brief Controls the stress on the boundaries of a box and compute strain-like and stress-like quantities for the packing. The algorithms used have been developed initialy for simulations reported in [Chareyre2002a] and [Chareyre2005]. They have been ported to SudoDEM in a second step and used in e.g. [Kozicki2008],[Scholtes2009b],[Jerier2010b].
+*/
+
+class CompressionEngine : public BoundaryController
+{
+	private :
+		bool firstRun;
+		std::ofstream out;
+		bool majorok;
+		shared_ptr<Body> box [6];
+		shared_ptr<NewtonIntegrator> newton;
+		enum {left_wall=0,right_wall,front_wall,back_wall,bottom_wall,top_wall};
+
+		inline const Vector3r getForce(Scene* rb, Body::id_t id){ return rb->forces.getForce(id); }
+	public :
+		Real wall_stiffness[6];
+		Real pos[4];
+		Real left_wpos[4];
+		Real right_wpos[4];
+		Real front_wpos[4];
+		Real back_wpos[4];
+		Real bottom_wpos[4];
+		Real top_wpos[4];
+		Real x_area;
+		Real y_area;
+		Real z_area;
+		Real loading_area;
+		Vector3r wall_pos[6];
+		Real avg_xstiff;
+		Real avg_ystiff;
+		Real avg_zstiff;
+		Real gain_x, gain_y, gain_z;
+		#ifdef SOLE_GAIN
+		double wsxx_left,wsxx_right,wsyy_front,wsyy_back,wszz_top,wszz_bottom;
+		Real gain_x1, gain_y1, avg_xstiff1, avg_ystiff1, gain_z1, avg_zstiff1;
+		#endif
+		Real strain[3];
+		Real particlesVolume;
+		//std::vector<Real> stress;
+		//std::vector<Real> strainRate;
+		Real wall_damping[6];
+		//initial box size
+		Real box_volume;
+		Real Initial_boxVolume;
+		Real Init_boxVolume;
+		Real Current_boxVolume;
+		//cylinder parameters
+		Real left_facet_pos;
+		//current box size
+		Real box_ax;
+		Real box_ay;
+		Real box_az;
+		Real porosity;
+		Real fmax;
+		//wall stress
+		Real left_wall_s;
+		Real right_wall_s;
+		Real front_wall_s;
+		Real back_wall_s;
+		Real bottom_wall_s;
+		Real top_wall_s;
+		//current force
+		Real f_left;
+		Real f_right;
+		Real f_front;
+		Real f_back;
+		Real f_bottom;
+		Real f_top;
+		//current velocity
+		Real v_left;
+		Real v_right;
+		Real v_front;
+		Real v_back;
+		Real v_bottom;
+		Real v_top;
+		//current position
+		//Real pos_left;
+		//Real pos_right;
+		//Real pos_front;
+		//Real pos_back;
+		//Real pos_bottom;
+		//Real pos_top;
+		//stress control
+		//current position
+		//Real stress[3];
+		//Real strainRate[3];
+		// wall velocity limits
+		Real wall_max_vel[6];
+		// wall positions
+		Real current_width;
+		Real current_height;
+		Real current_depth;
+		// iteration numbers
+		//unsigned int iterate_num;
+		//unsigned int solve_num;
+		// flag
+		bool Flag_ForceTarget;
+		// wall friction
+		//Real wall_friction;
+		// wall servo-control
+		//Real wall_ux_servo;
+		//unsigned int servo_time;
+		//current
+		//Real wall_tangential_stiffness;
+		// parameters for stress/strain control
+		// control variables
+		unsigned int iterate_num;
+		unsigned int solve_num;
+		// attributes from the macro
+		bool cubic_specimen;
+		bool z_servo;
+		bool continueFlag;
+		unsigned int shearMode;
+		double wall_radius;
+		bool wall_fix;
+		double wall_radius0;
+		double gain_alpha;
+		double target_strain;
+		unsigned int iterate_num_max;
+		unsigned int solve_num_max;
+		unsigned int echo_interval;
+		unsigned int ramp_interval;
+		unsigned int ramp_chunks;
+		Real f_threshold;
+		Real fmin_threshold;
+		Real unbf_tol;
+		Real wall_max_vel_single;
+		Real alpha;
+		Real height0;
+		Real width0;
+		Real depth0;
+		Real height;
+		Real width;
+		Real depth;
+		bool left_wall_activated;
+		bool right_wall_activated;
+		bool front_wall_activated;
+		bool back_wall_activated;
+		bool bottom_wall_activated;
+		bool top_wall_activated;
+		bool hydroStrain;
+		Real hydroStrainRate;
+		bool debug;
+		Real goalx;
+		Real goaly;
+		Real goalz;
+		unsigned int savedata_interval;
+		Real max_vel;
+		Real externalWork;
+		Real UnbalancedForce;
+		bool interStressControl;
+		std::string file;
+		
+			// Stress values
+			Real wsxx, wsyy, wszz;
+			Real cylinder_stress;		
+		CompressionEngine() : firstRun(true), majorok(true), box_volume(0), Initial_boxVolume(0), 
+			Init_boxVolume(0), Current_boxVolume(0), left_facet_pos(0), porosity(1), fmax(0),
+			left_wall_s(0), right_wall_s(0), front_wall_s(0), back_wall_s(0), bottom_wall_s(0), top_wall_s(0),
+			f_left(0), f_right(0), f_front(0), f_back(0), f_bottom(0), f_top(0),
+			v_left(0), v_right(0), v_front(0), v_back(0), v_bottom(0), v_top(0),
+			current_width(0), current_height(0), current_depth(0),
+			iterate_num(0), solve_num(0), Flag_ForceTarget(false),
+			x_area(0), y_area(0), z_area(0), loading_area(0),
+			avg_xstiff(0), avg_ystiff(0), avg_zstiff(0), gain_x(0), gain_y(0), gain_z(0),
+			rampNum(0),
+			cubic_specimen(true), z_servo(true), continueFlag(false), shearMode(1),
+			wall_radius(5.0), wall_fix(true), wall_radius0(0),
+			gain_alpha(0.5), target_strain(0.15), iterate_num_max(100), solve_num_max(2000),
+			echo_interval(1000), ramp_interval(10000), ramp_chunks(400),
+			f_threshold(0.01), fmin_threshold(0.01), unbf_tol(0.01), wall_max_vel_single(1.), alpha(0.5),
+			height0(0), width0(0), depth0(0), height(0), width(0), depth(0),
+			left_wall_activated(true), right_wall_activated(true), front_wall_activated(true), 
+			back_wall_activated(true), bottom_wall_activated(true), top_wall_activated(true),
+			hydroStrain(false), hydroStrainRate(0.), debug(false), goalx(0), goaly(0), goalz(0),
+			savedata_interval(12), max_vel(1.), externalWork(0), UnbalancedForce(1), 
+							interStressControl(false),
+							wsxx(0), wsyy(0), wszz(0), cylinder_stress(0),
+							cylinder_force(0), num_pwall(0), truncate(false)		{
+			strain[0] = strain[1] = strain[2] = 0;
+			for(int j = 0; j < 4; j++) pos[j] = 0;
+			for(int j = 0; j < 4; j++) {
+				left_wpos[j] = 0; right_wpos[j] = 0; front_wpos[j] = 0; back_wpos[j] = 0; 
+				bottom_wpos[j] = 0; top_wpos[j] = 0;
+			}
+			for(int j = 0; j < 6; j++) {
+				wall_pos[j] = Vector3r::Zero();
+				wall_stiffness[j] = 0.;
+				wall_damping[j] = 0.8;
+				wall_max_vel[j] = 1e5;
+			}
+					box_ax = box_ay = box_az = 0;
+				}
+			
+				~CompressionEngine();
+			
+				void action();		void checkTarget();
+		void cylinwall_go();
+		void shear();
+		unsigned int rampNum;
+		
+		// Missing method declarations
+		void updateStiffness();
+		Real ComputeUnbalancedForce(bool maxUnbalanced=false);
+		void updateBoxSize();
+		void hydroConsolidation();
+		void generalConsolidation();
+		void action_cubic();
+		void action_cylindrical();
+		Vector3r getStress();
+			void servo(Real dt);
+			void get_gain();
+			void get_gainz();
+			void getBox();
+			void recordData();
+			void consol_ss();
+			void consol_ss_cylinder();
+					void servo_cylinder(double dt);
+					Matrix3r getStressTensor();
+			
+							// Cylinder-related member variables
+							Real cylinder_force;
+							int num_pwall;
+							bool truncate;					
+								// Use REGISTER_ATTRIBUTES for serialization - now supports up to 40 attributes
+									REGISTER_ATTRIBUTES(BoundaryController, cubic_specimen, z_servo, continueFlag, shearMode,
+									wall_radius, wall_fix, wall_radius0, gain_alpha, target_strain, iterate_num_max, solve_num_max,
+									echo_interval, ramp_interval, ramp_chunks, f_threshold, fmin_threshold, unbf_tol,
+									wall_max_vel_single, alpha, height0, width0, depth0, height, width, depth,
+									left_wall_activated, right_wall_activated, front_wall_activated, back_wall_activated,
+									bottom_wall_activated, top_wall_activated, hydroStrain, hydroStrainRate, debug,
+									goalx, goaly, goalz, savedata_interval, max_vel, externalWork, UnbalancedForce,
+									interStressControl, wsxx, wsyy, wszz, cylinder_stress, cylinder_force, num_pwall, truncate);		pybind11::list get_strain() const;
+		pybind11::list get_porosity() const;
+		
+	DECLARE_LOGGER;
+
+	virtual void pyRegisterClass(pybind11::module_ _module) override {
+		checkPyClassRegistersItself("CompressionEngine");
+		pybind11::class_<CompressionEngine, GlobalEngine, std::shared_ptr<CompressionEngine>> _classObj(_module, "CompressionEngine", "Compression engine for DEM simulations.");
+		_classObj.def(pybind11::init<>());
+		_classObj.def_readwrite("cubic_specimen", &CompressionEngine::cubic_specimen, "Use cubic specimen");
+		_classObj.def_readwrite("z_servo", &CompressionEngine::z_servo, "Z-direction servo control");
+		_classObj.def_readwrite("continueFlag", &CompressionEngine::continueFlag, "Continue flag");
+		_classObj.def_readwrite("shearMode", &CompressionEngine::shearMode, "Shear mode");
+		_classObj.def_readwrite("wall_radius", &CompressionEngine::wall_radius, "Wall radius");
+		_classObj.def_readwrite("wall_fix", &CompressionEngine::wall_fix, "Wall fix flag");
+		_classObj.def_readwrite("wall_radius0", &CompressionEngine::wall_radius0, "Initial wall radius");
+		_classObj.def_readwrite("gain_alpha", &CompressionEngine::gain_alpha, "Gain alpha");
+		_classObj.def_readwrite("target_strain", &CompressionEngine::target_strain, "Target strain");
+		_classObj.def_readwrite("iterate_num_max", &CompressionEngine::iterate_num_max, "Maximum iteration number");
+		_classObj.def_readwrite("solve_num_max", &CompressionEngine::solve_num_max, "Maximum solve number");
+		_classObj.def_readwrite("echo_interval", &CompressionEngine::echo_interval, "Echo interval");
+		_classObj.def_readwrite("ramp_interval", &CompressionEngine::ramp_interval, "Ramp interval");
+		_classObj.def_readwrite("ramp_chunks", &CompressionEngine::ramp_chunks, "Ramp chunks");
+		_classObj.def_readwrite("f_threshold", &CompressionEngine::f_threshold, "Force threshold");
+		_classObj.def_readwrite("fmin_threshold", &CompressionEngine::fmin_threshold, "Minimum force threshold");
+		_classObj.def_readwrite("unbf_tol", &CompressionEngine::unbf_tol, "Unbalanced force tolerance");
+		_classObj.def_readwrite("wall_max_vel_single", &CompressionEngine::wall_max_vel_single, "Maximum wall velocity");
+		_classObj.def_readwrite("alpha", &CompressionEngine::alpha, "Alpha parameter");
+		_classObj.def_readwrite("height0", &CompressionEngine::height0, "Initial height");
+		_classObj.def_readwrite("width0", &CompressionEngine::width0, "Initial width");
+		_classObj.def_readwrite("depth0", &CompressionEngine::depth0, "Initial depth");
+		_classObj.def_readwrite("height", &CompressionEngine::height, "Current height");
+		_classObj.def_readwrite("width", &CompressionEngine::width, "Current width");
+		_classObj.def_readwrite("depth", &CompressionEngine::depth, "Current depth");
+		_classObj.def_readwrite("left_wall_activated", &CompressionEngine::left_wall_activated, "Left wall activated");
+		_classObj.def_readwrite("right_wall_activated", &CompressionEngine::right_wall_activated, "Right wall activated");
+		_classObj.def_readwrite("front_wall_activated", &CompressionEngine::front_wall_activated, "Front wall activated");
+		_classObj.def_readwrite("back_wall_activated", &CompressionEngine::back_wall_activated, "Back wall activated");
+		_classObj.def_readwrite("bottom_wall_activated", &CompressionEngine::bottom_wall_activated, "Bottom wall activated");
+		_classObj.def_readwrite("top_wall_activated", &CompressionEngine::top_wall_activated, "Top wall activated");
+		_classObj.def_readwrite("hydroStrain", &CompressionEngine::hydroStrain, "Hydro strain");
+		_classObj.def_readwrite("hydroStrainRate", &CompressionEngine::hydroStrainRate, "Hydro strain rate");
+		_classObj.def_readwrite("debug", &CompressionEngine::debug, "Debug flag");
+		_classObj.def_readwrite("goalx", &CompressionEngine::goalx, "Goal X");
+		_classObj.def_readwrite("goaly", &CompressionEngine::goaly, "Goal Y");
+		_classObj.def_readwrite("goalz", &CompressionEngine::goalz, "Goal Z");
+		_classObj.def_readwrite("savedata_interval", &CompressionEngine::savedata_interval, "Save data interval");
+		_classObj.def_readwrite("max_vel", &CompressionEngine::max_vel, "Maximum velocity");
+		_classObj.def_readwrite("externalWork", &CompressionEngine::externalWork, "External work");
+		_classObj.def_readwrite("UnbalancedForce", &CompressionEngine::UnbalancedForce, "Unbalanced force");
+		_classObj.def_readwrite("interStressControl", &CompressionEngine::interStressControl, "Inter stress control");
+		_classObj.def_readwrite("file", &CompressionEngine::file, "File name");
+		// Array bindings disabled - pybind11 doesn't support direct array member binding
+		// _classObj.def_readwrite("strain", &CompressionEngine::strain, "Strain array");
+		// Array bindings disabled - pybind11 doesn't support direct array member binding
+		// _classObj.def_readwrite("wall_stiffness", &CompressionEngine::wall_stiffness, "Wall stiffness array");
+		// _classObj.def_readwrite("pos", &CompressionEngine::pos, "Position array");
+		// _classObj.def_readwrite("left_wpos", &CompressionEngine::left_wpos, "Left wall position array");
+		// _classObj.def_readwrite("right_wpos", &CompressionEngine::right_wpos, "Right wall position array");
+		// _classObj.def_readwrite("front_wpos", &CompressionEngine::front_wpos, "Front wall position array");
+		// _classObj.def_readwrite("back_wpos", &CompressionEngine::back_wpos, "Back wall position array");
+		// _classObj.def_readwrite("bottom_wpos", &CompressionEngine::bottom_wpos, "Bottom wall position array");
+		// _classObj.def_readwrite("top_wpos", &CompressionEngine::top_wpos, "Top wall position array");
+		_classObj.def_readwrite("x_area", &CompressionEngine::x_area, "X area");
+		_classObj.def_readwrite("y_area", &CompressionEngine::y_area, "Y area");
+		_classObj.def_readwrite("z_area", &CompressionEngine::z_area, "Z area");
+		_classObj.def_readwrite("loading_area", &CompressionEngine::loading_area, "Loading area");
+		// Array binding disabled - pybind11 doesn't support direct array member binding
+		// _classObj.def_readwrite("wall_pos", &CompressionEngine::wall_pos, "Wall position array");
+		_classObj.def_readwrite("avg_xstiff", &CompressionEngine::avg_xstiff, "Average X stiffness");
+		_classObj.def_readwrite("avg_ystiff", &CompressionEngine::avg_ystiff, "Average Y stiffness");
+		_classObj.def_readwrite("avg_zstiff", &CompressionEngine::avg_zstiff, "Average Z stiffness");
+		_classObj.def_readwrite("gain_x", &CompressionEngine::gain_x, "Gain X");
+		_classObj.def_readwrite("gain_y", &CompressionEngine::gain_y, "Gain Y");
+		_classObj.def_readwrite("gain_z", &CompressionEngine::gain_z, "Gain Z");
+		// Array binding disabled - pybind11 doesn't support direct array member binding
+		// _classObj.def_readwrite("wall_damping", &CompressionEngine::wall_damping, "Wall damping array");
+		_classObj.def_readwrite("box_volume", &CompressionEngine::box_volume, "Box volume");
+		_classObj.def_readwrite("Initial_boxVolume", &CompressionEngine::Initial_boxVolume, "Initial box volume");
+		_classObj.def_readwrite("Init_boxVolume", &CompressionEngine::Init_boxVolume, "Initial box volume");
+		_classObj.def_readwrite("Current_boxVolume", &CompressionEngine::Current_boxVolume, "Current box volume");
+		_classObj.def_readwrite("left_facet_pos", &CompressionEngine::left_facet_pos, "Left facet position");
+		_classObj.def_readwrite("box_ax", &CompressionEngine::box_ax, "Box AX");
+		_classObj.def_readwrite("box_ay", &CompressionEngine::box_ay, "Box AY");
+		_classObj.def_readwrite("box_az", &CompressionEngine::box_az, "Box AZ");
+		_classObj.def_readwrite("porosity", &CompressionEngine::porosity, "Porosity");
+		_classObj.def_readwrite("fmax", &CompressionEngine::fmax, "Maximum force");
+		_classObj.def_readwrite("left_wall_s", &CompressionEngine::left_wall_s, "Left wall stress");
+		_classObj.def_readwrite("right_wall_s", &CompressionEngine::right_wall_s, "Right wall stress");
+		_classObj.def_readwrite("front_wall_s", &CompressionEngine::front_wall_s, "Front wall stress");
+		_classObj.def_readwrite("back_wall_s", &CompressionEngine::back_wall_s, "Back wall stress");
+		_classObj.def_readwrite("bottom_wall_s", &CompressionEngine::bottom_wall_s, "Bottom wall stress");
+		_classObj.def_readwrite("top_wall_s", &CompressionEngine::top_wall_s, "Top wall stress");
+		_classObj.def_readwrite("f_left", &CompressionEngine::f_left, "Left force");
+		_classObj.def_readwrite("f_right", &CompressionEngine::f_right, "Right force");
+		_classObj.def_readwrite("f_front", &CompressionEngine::f_front, "Front force");
+		_classObj.def_readwrite("f_back", &CompressionEngine::f_back, "Back force");
+		_classObj.def_readwrite("f_bottom", &CompressionEngine::f_bottom, "Bottom force");
+		_classObj.def_readwrite("f_top", &CompressionEngine::f_top, "Top force");
+		_classObj.def_readwrite("v_left", &CompressionEngine::v_left, "Left velocity");
+		_classObj.def_readwrite("v_right", &CompressionEngine::v_right, "Right velocity");
+		_classObj.def_readwrite("v_front", &CompressionEngine::v_front, "Front velocity");
+		_classObj.def_readwrite("v_back", &CompressionEngine::v_back, "Back velocity");
+		_classObj.def_readwrite("v_bottom", &CompressionEngine::v_bottom, "Bottom velocity");
+		_classObj.def_readwrite("v_top", &CompressionEngine::v_top, "Top velocity");
+		_classObj.def_readwrite("current_width", &CompressionEngine::current_width, "Current width");
+		_classObj.def_readwrite("current_height", &CompressionEngine::current_height, "Current height");
+		_classObj.def_readwrite("current_depth", &CompressionEngine::current_depth, "Current depth");
+		_classObj.def_readwrite("iterate_num", &CompressionEngine::iterate_num, "Iteration number");
+		_classObj.def_readwrite("solve_num", &CompressionEngine::solve_num, "Solve number");
+		_classObj.def_readwrite("Flag_ForceTarget", &CompressionEngine::Flag_ForceTarget, "Force target flag");
+		_classObj.def_readwrite("rampNum", &CompressionEngine::rampNum, "Ramp number");
+	}
+};
+REGISTER_SERIALIZABLE_BASE(CompressionEngine, GlobalEngine);

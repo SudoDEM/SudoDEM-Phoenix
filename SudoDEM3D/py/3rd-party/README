@@ -1,0 +1,18 @@
+pygts-0.3.1:
+	homepage: http://pygts.sourceforge.net/
+	documentation: http://pygts.svn.sourceforge.net/viewvc/pygts/doc/gts.html
+	license: GNU GPL v2
+	note: the local version is only the 'gts' directory of the source archive (doc, examples, test ommited). Distutils are not used for building either.
+	patch: pygts.py has the following lines added at the beginning:
+
+		# added by eudoxos 29.1.2011, fixes https://bugs.launchpad.net/sudodem/+bug/668329
+		## force decimal separator to be always . (decimal point), not , (decimal comma) -- unless LC_ALL is set, then we are stuck
+		## this was reason for bogus gts imports
+		## adding to sudodem main does not solve the problem for some reason
+		import locale
+		locale.setlocale(locale.LC_NUMERIC,'C')
+
+mtTkinter-0.4:
+	homepage: http://tkinter.unpythonic.net/wiki/mtTkinter
+	source: http://tkinter.unpythonic.net/wiki/mtTkinter?action=AttachFile&do=get&target=mtTkinter-0.4.tar.gz
+	license: gpl lgpl

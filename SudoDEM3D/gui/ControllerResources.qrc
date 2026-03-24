@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/img">
+        <file>sudodem-favicon.xpm</file>
+        <file>sudodem-favicon.png</file>
+    </qresource>
+</RCC>
