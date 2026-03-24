@@ -72,8 +72,7 @@ make -j$(nproc)
 ### Build Options
 
 - `DEBUG=ON`: Enable debug build with verbose output
-- `ENABLE_CUDA=ON`: Enable CUDA support (SudoDEM3D)
-- `USE_QT5=ON`: Enable Qt5 GUI support
+- `USE_QT6=ON`: Enable Qt6 GUI support
 
 ## Examples
 
