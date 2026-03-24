@@ -1,4 +1,4 @@
-# SudoDEM
+# SudoDEM-Phoenix
 
 A Discrete Element Code for Non-spherical Particles
 
@@ -6,14 +6,13 @@ A Discrete Element Code for Non-spherical Particles
 
 ## Overview
 
-**SudoDEM** is a specialized open-source Discrete Element Method (DEM) code designed for modeling non-spherical particles. It inherits the basic framework from [YADE](https://yade-dem.org) and extends it to support various convex particle shapes.
+**SudoDEM-Phoenix** is a specialized open-source Discrete Element Method (DEM) code designed for modeling non-spherical particles. It has been rewritten for Windows, Linux and MacOS based on the original SudoDEM.
 
 ### Key Features
 
 - **2D Particles**: Disks, super-ellipses
 - **3D Particles**: Polyhedrons, super-ellipsoids, poly-superellipsoids, cylinders, cones
 - **Clump Technique**: Construct concave shapes by grouping convex particles
-- **GPU Acceleration**: CUDA support for high-performance computing
 - **Python Scripting**: Flexible simulation control via Python interface
 - **OpenMP Parallelization**: Multi-threaded execution support
 
@@ -42,7 +41,6 @@ SudoDEM-Phoenix/
 - **Python**: 3.13+
 - **C++ Compiler**: C++17 compatible (GCC, Clang, or MSVC)
 - **OpenMP**: For parallelization
-- **CUDA**: (Optional) For GPU acceleration
 
 ### Dependencies
 
@@ -127,8 +125,8 @@ Contributions are welcome! Please feel free to submit issues, feature requests, 
 If you use SudoDEM in your research, please cite:
 
 ```
-SudoDEM: A Discrete Element Code for Non-spherical Particles
-https://sudodem.github.io
+Zhao, S., & Zhao, J. (2021). SudoDEM: Unleashing the predictive power of the discrete element method on simulation for non-spherical granular particles. Computer Physics Communications, 259, 107670. https://doi.org/10.1016/j.cpc.2020.107670
+
 ```
 
 ## Authors
