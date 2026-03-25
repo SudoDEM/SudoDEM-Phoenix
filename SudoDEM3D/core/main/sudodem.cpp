@@ -460,22 +460,27 @@ int main( int argc, char **argv )
     // Run with Qt6 GUI on main thread (required by macOS)
     cout<<"Starting SudoDEM with Qt6 GUI..."<<endl;
 
-    const char* qtRootEnv = std::getenv("Qt6_ROOT");
+    #ifdef BUILD_STANDALONE
+      QCoreApplication::addLibraryPath(QString::fromStdWString(exePath.wstring()));
+    #else
+      const char* qtRootEnv = std::getenv("Qt6_ROOT");
 
-    if (!qtRootEnv) 
-    {
-      throw std::runtime_error("Error: environment variable Qt6_ROOT is not set.");
-    }
+      if (!qtRootEnv) 
+      {
+        throw std::runtime_error("Error: environment variable Qt6_ROOT is not set.");
+      }
 
-    namespace fs = std::filesystem;
-    fs::path qtRoot = fs::u8path(qtRootEnv);
-    fs::path pluginRoot = qtRoot / "plugins";
+      namespace fs = std::filesystem;
+      fs::path qtRoot = fs::u8path(qtRootEnv);
+      fs::path pluginRoot = qtRoot / "plugins";
 
-    if (!fs::exists(pluginRoot)) {
-        throw std::runtime_error("Qt plugin path does not exist: " + pluginRoot.string());
-    }
+      if (!fs::exists(pluginRoot)) {
+          throw std::runtime_error("Qt plugin path does not exist: " + pluginRoot.string());
+      }
 
-    QCoreApplication::addLibraryPath(QString::fromStdWString(pluginRoot.wstring()));
+      QCoreApplication::addLibraryPath(QString::fromStdWString(pluginRoot.wstring()));
+      
+    #endif
 
     // Initialize Qt6 application on main thread (required by macOS)
     cout<<"Creating QApplication..."<<endl;
