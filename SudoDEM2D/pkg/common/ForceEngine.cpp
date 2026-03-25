@@ -2,14 +2,14 @@
 // 2009 © Václav Šmilauer <eudoxos@arcig.cz>
 // 2014 © Raphael Maurin <raphael.maurin@irstea.fr>
 
-#include"ForceEngine.hpp"
-#include<sudodem/core/Scene.hpp>
-#include<sudodem/pkg/common/Disk.hpp>
-#include<sudodem/lib/smoothing/LinearInterpolate.hpp>
-#include<sudodem/pkg/dem/Shop.hpp>
+#include <sudodem/pkg/common/ForceEngine.hpp>
+#include <sudodem/core/Scene.hpp>
+#include <sudodem/pkg/common/Disk.hpp>
+#include <sudodem/lib/smoothing/LinearInterpolate.hpp>
+#include <sudodem/pkg/dem/Shop.hpp>
 
-#include<sudodem/core/IGeom.hpp>
-#include<sudodem/core/IPhys.hpp>
+#include <sudodem/core/IGeom.hpp>
+#include <sudodem/core/IPhys.hpp>
 
 #include <random>
 #include <random>

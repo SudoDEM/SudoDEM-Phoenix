@@ -1,5 +1,5 @@
-#include "Superellipse.hpp"
-#include "Superellipse_Ig2.hpp"
+#include <sudodem/pkg/dem/Superellipse.hpp>
+#include <sudodem/pkg/dem/Superellipse_Ig2.hpp>
 #include <cmath>
 #include <sudodem/core/Scene.hpp>
 #include <sudodem/core/Omega.hpp>

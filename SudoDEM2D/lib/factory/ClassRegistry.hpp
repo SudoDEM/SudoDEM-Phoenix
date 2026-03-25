@@ -303,8 +303,30 @@ public:
             free(demangled);
             return result;
         }
+
+#elif defined(_MSC_VER)
+
+    std::string outname = mangledName;
+
+    const char* prefixes[] = {
+        "class ",
+        "struct ",
+        "enum ",
+        "union "
+    };
+
+    for (const char* p : prefixes) {
+        std::string pref(p);
+        if (outname.rfind(pref, 0) == 0) {
+            outname.erase(0, pref.size());
+            break;
+        }
+    }
+
+    return outname;
 #endif
-        return mangledName;
+
+    return mangledName;
     }
 
     /**

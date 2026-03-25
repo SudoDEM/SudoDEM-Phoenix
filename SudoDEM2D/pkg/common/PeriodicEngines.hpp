@@ -2,14 +2,21 @@
 #pragma once
 
 #include<time.h>
-#include<sys/time.h>
+#include <chrono>
 #include<sudodem/core/GlobalEngine.hpp>
 #include<sudodem/core/Omega.hpp>
 #include<sudodem/core/Scene.hpp>
 
 class PeriodicEngine:  public GlobalEngine {
 	public:
-		static Real getClock(){ timeval tp; gettimeofday(&tp,NULL); return tp.tv_sec+tp.tv_usec/1e6; }
+		static Real getClock() {
+			using namespace std::chrono;
+			return static_cast<Real>(
+				duration_cast<duration<Real>>(
+					system_clock::now().time_since_epoch()
+				).count()
+				);
+		}
 		virtual ~PeriodicEngine() {}; // vtable
 		
 		Real virtPeriod;
@@ -42,7 +49,7 @@ class PeriodicEngine:  public GlobalEngine {
 			return false;
 		}
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<PeriodicEngine, GlobalEngine, std::shared_ptr<PeriodicEngine>> _classObj(_module, "PeriodicEngine", 
 				"Run Engine::action with given fixed periodicity real time (=wall clock time, computation time), \
 				virtual time (simulation time), iteration number), by setting any of those criteria \

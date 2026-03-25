@@ -67,7 +67,7 @@ class ScGeom: public IGeom {//for 2D
 		Vector2r getIncidentVel_py(shared_ptr<Interaction> i, bool avoidGranularRatcheting);
 		Real getRelAngVel_py(shared_ptr<Interaction> i);
 
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<ScGeom, IGeom, std::shared_ptr<ScGeom>> _classObj(_module, "ScGeom", "Class representing :yref:`geometry<IGeom>` of a contact point between two :yref:`bodies<Body>`. It is more general than disk-disk contact even though it is primarily focused on disks interactions (reason for the 'Sc' namming); it is also used for representing contacts of a :yref:`Disk` with non-spherical bodies (:yref:`Facet`, :yref:`Plane`,  :yref:`Box`, :yref:`ChainedCylinder`), or between two non-spherical bodies (:yref:`ChainedCylinder`). The contact has 3 DOFs (normal and 2×shear) and uses incremental algorithm for updating shear.\n\nWe use symbols $\\vec{x}$, $\\vec{v}$, $\\vec{\\omega}$ respectively for position, linear and angular velocities (all in global coordinates) and $r$ for particles radii; subscripted with 1 or 2 to distinguish 2 disks in contact. Then we define branch length and unit contact normal\n\n.. math::\n\n\tl=||\\vec{x}_2-\\vec{x}_1||, \\vec{n}=\\frac{\\vec{x}_2-\\vec{x}_1}{||\\vec{x}_2-\\vec{x}_1||}\n\nThe relative velocity of the disks is then\n\n.. math::\n\n\t\\vec{v}_{12}=\\frac{r_1+r_2}{l}(\\vec{v}_2-\\vec{v}_1) -(r_2 \\vec{\\omega}_2 + r_1\\vec{\\omega}_1)\\times\\vec{n}\n\nwhere the fraction multplying translational velocities is to make the definition objective and avoid ratcheting effects (see :yref:`Ig2_Disk_Disk_ScGeom.avoidGranularRatcheting`). The shear component is\n\n.. math::\n\n\t\\vec{v}_{12}^s=\\vec{v}_{12}-(\\vec{n}\\cdot\\vec{v}_{12})\\vec{n}.\n\nTangential displacement increment over last step then reads\n\n.. math::\n\n\t\\Delta\\vec{x}_{12}^s=\\Delta t \\vec{v}_{12}^s.");
 			_classObj.def(pybind11::init<>());
 			_classObj.def_readwrite("normal", &ScGeom::normal, "Unit vector oriented along the interaction, from particle #1, towards particle #2. |yupdate|");
@@ -79,6 +79,6 @@ class ScGeom: public IGeom {//for 2D
 			_classObj.def("incidentVel", &ScGeom::getIncidentVel_py, pybind11::arg("i"), pybind11::arg("avoidGranularRatcheting") = true, "Return incident velocity of the interaction (see also :yref:`Ig2_Disk_Disk_ScGeom.avoidGranularRatcheting` for explanation of the ratcheting argument).");
 			_classObj.def("relAngVel", &ScGeom::getRelAngVel_py, pybind11::arg("i"), "Return relative angular velocity of the interaction.");
 		}
-	REGISTER_CLASS_INDEX(ScGeom,IGeom);
+	REGISTER_CLASS_INDEX_H(ScGeom,IGeom)
 };
 REGISTER_SERIALIZABLE_BASE(ScGeom, IGeom);

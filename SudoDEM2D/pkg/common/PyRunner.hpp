@@ -12,7 +12,7 @@ class PyRunner: public PeriodicEngine {
 		/* virtual bool isActivated: not overridden, PeriodicEngine handles that */
 		virtual void action() override { if(command.size()>0) pyRunString(command); }
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<PyRunner, PeriodicEngine, std::shared_ptr<PyRunner>> _classObj(_module, "PyRunner", "Execute a python command periodically, with defined (and adjustable) periodicity. See :yref:`PeriodicEngine` documentation for details.");
 			_classObj.def(pybind11::init<>());
 			_classObj.def(pybind11::init([](const std::string& command, Real virtPeriod, Real realPeriod, long iterPeriod, long nDo, bool initRun, const std::string& label, bool dead) {

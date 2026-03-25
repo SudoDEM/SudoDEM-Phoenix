@@ -71,8 +71,15 @@ int OpenGLManager::waitForNewView(float timeout,bool center){
 	emitCreateView();
 	float t=0;
 	// std::cerr << "DEBUG OpenGLManager::waitForNewView() waiting for view creation" << std::endl;
-	while(views.size()!=origViewCount+1){
-		usleep(50000); t+=.05;
+	while(views.size()!=origViewCount+1)
+	{
+		#ifdef _WIN32
+			std::this_thread::sleep_for(std::chrono::microseconds(50000));
+		#else
+			usleep(50000); 
+		#endif
+		
+		t+=.05;
 		// wait at most 5 secs
 		if(t>=timeout) {
 			LOG_ERROR("Timeout waiting for the new view to open, giving up."); return -1;

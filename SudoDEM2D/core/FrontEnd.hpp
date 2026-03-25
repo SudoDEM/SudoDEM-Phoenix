@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include "Omega.hpp"
+#include <sudodem/core/Omega.hpp>
 
 // Factorable is kept as a stub for backward compatibility
 // ClassFactory registration is now handled by ClassRegistry
-#include<sudodem/lib/factory/Factorable.hpp>
+#include <sudodem/lib/factory/Factorable.hpp>
 
 class FrontEnd : public Factorable
 {

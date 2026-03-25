@@ -16,6 +16,16 @@
 #define signals Q_SIGNALS
 #endif
 
+#ifdef _WIN32
+  #ifdef GLVIEWER_OPENGL_BUILD
+    #define GLVIEWER_OPENGL_API __declspec(dllexport)
+  #else
+    #define GLVIEWER_OPENGL_API __declspec(dllimport)
+  #endif
+#else
+  #define GLVIEWER_OPENGL_API
+#endif
+
 /*
 Singleton class managing OpenGL views,
 a renderer instance and timer to refresh the display.
@@ -24,7 +34,7 @@ class OpenGLManager: public QObject{
 	Q_OBJECT
 	DECLARE_LOGGER;
 	public:
-		static OpenGLManager* self;
+		static GLVIEWER_OPENGL_API OpenGLManager* self;
 		OpenGLManager(QObject *parent=0);
 		// manipulation must lock viewsMutex!
 		std::vector<shared_ptr<GLViewer> > views;

@@ -12,15 +12,13 @@
 #include<sudodem/pkg/common/NormShearPhys.hpp>
 #include<sudodem/pkg/dem/FrictPhys.hpp>
 #include<sudodem/pkg/dem/ElasticContactLaw.hpp>
-#include"Superellipse.hpp"
-#include"Superellipse_Ig2.hpp"
+#include<sudodem/pkg/dem/Superellipse.hpp>
+#include<sudodem/pkg/dem/Superellipse_Ig2.hpp>
 
 #include<time.h>
 
-#define _USE_MATH_DEFINES
-
 ////////////////////////////////some auxiliary functions/////////////////////////////////////////////////////////////////
-double cot(double x){return tan(M_PI_2-x);}
+double cot(double x){return tan(Mathr::HALF_PI-x);}
 int Sign(double f){ if(f<0) return -1; if(f>0) return 1; return 0; }
 /////////////////////////gamma func----referring to NR3.0
 double gammln(const double xx) {
@@ -665,3 +663,28 @@ bool SuperellipseLaw::go(shared_ptr<IGeom>& ig, shared_ptr<IPhys>& ip, Interacti
 		//may need to add phys->shearViscous and phys->normalViscous
 		return true;
 }
+
+void Superellipse::pyRegisterClass(pybind11::module_ _module)
+{
+	pybind11::class_<Superellipse, Shape, std::shared_ptr<Superellipse>> _classObj(_module, "Superellipse", "Superellipse shape.");
+	_classObj.def(pybind11::init<>());
+	_classObj.def_readwrite("rxy", &Superellipse::rxy, "length of half-axis in the two driections, x,y, local coordinate system");
+	_classObj.def_readwrite("ref_rxy", &Superellipse::ref_rxy, "reference length of half-axis in the two driections, x,y, local coordinate system");
+	_classObj.def_readwrite("rx", &Superellipse::rx, "length of half-axis in the two driections, x,y,z, local coordinate system");
+	_classObj.def_readwrite("ry", &Superellipse::ry, "length of half-axis in the two driections, x,y,z, local coordinate system");
+	_classObj.def_readwrite("eps", &Superellipse::eps, "parameter eps in the surfce funtion, i.e., (x/a)^(2/eps)+(y/b)^(2/eps)=1");
+	_classObj.def_readwrite("isSphere", &Superellipse::isSphere, "the shape is non-spherical by default. Using this flag for accelerating spherical systems");
+	_classObj.def("Initial",&Superellipse::Initial,"Initialization");
+	_classObj.def("getArea",&Superellipse::getArea,"return particle's area");
+	_classObj.def("getrxy",&Superellipse::getrxy,"return particle's rxy");
+	_classObj.def("geteps",&Superellipse::geteps,"return particle's eps");
+	_classObj.def("getInertia",&Superellipse::getInertia,"return particle's inertia tensor");
+	_classObj.def("getOri",&Superellipse::getOrientation,"return particle's orientation");
+							_classObj.def("getCentroid",&Superellipse::getPosition,"return particle's centroid");
+						}
+
+REGISTER_CLASS_INDEX_CPP(Superellipse,Shape)
+REGISTER_CLASS_INDEX_CPP(SuperellipseGeom,IGeom)
+REGISTER_CLASS_INDEX_CPP(SuperellipseMat,Material)
+REGISTER_CLASS_INDEX_CPP(SuperellipseMat2,SuperellipseMat)
+REGISTER_CLASS_INDEX_CPP(SuperellipsePhys,FrictPhys)

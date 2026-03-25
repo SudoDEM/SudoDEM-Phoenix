@@ -1,4 +1,4 @@
-#include"InteractionLoop.hpp"
+#include <sudodem/pkg/common/InteractionLoop.hpp>
 
 CREATE_LOGGER(InteractionLoop);
 

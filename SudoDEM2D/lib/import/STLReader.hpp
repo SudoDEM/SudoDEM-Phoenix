@@ -8,7 +8,7 @@
 #pragma once
 
 #include <stdio.h>
-#include<string.h>
+#include <string.h>
 #include <set>
 #include <vector>
 #include <cmath>

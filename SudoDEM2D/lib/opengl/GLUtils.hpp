@@ -4,10 +4,10 @@
 //
 #pragma once
 
-#include<sudodem/lib/opengl/OpenGLWrapper.hpp>
-#include<sstream>
-#include<iomanip>
-#include<string>
+#include <sudodem/lib/opengl/OpenGLWrapper.hpp>
+#include <sstream>
+#include <iomanip>
+#include <string>
 
 struct GLUtils{
 	// code copied from qglviewer

@@ -1,4 +1,4 @@
-#include "FrictPhys.hpp"
+#include <sudodem/pkg/dem/FrictPhys.hpp>
 #include <sudodem/pkg/dem/ScGeom.hpp>
 
 // The following code was moved from Ip2_FrictMat_FrictMat_FrictPhys.hpp
@@ -72,4 +72,7 @@ void Ip2_FrictMat_FrictMat_ViscoFrictPhys::go( const shared_ptr<Material>& b1
 	contactPhysics->tangensOfFrictionAngle = std::tan(frictionAngle);
 	contactPhysics->kn = Kn;
 	contactPhysics->ks = Ks;
-};
+}
+
+REGISTER_CLASS_INDEX_CPP(FrictPhys,NormShearPhys)
+REGISTER_CLASS_INDEX_CPP(ViscoFrictPhys,FrictPhys)

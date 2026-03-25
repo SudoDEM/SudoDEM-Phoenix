@@ -16,7 +16,7 @@ class GravityEngine: public FieldApplier{
 		
 		DECLARE_LOGGER;
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<GravityEngine, FieldApplier, std::shared_ptr<GravityEngine>> _classObj(_module, "GravityEngine", "Engine applying constant acceleration to all bodies. DEPRECATED, use :yref:`Newton::gravity` unless you need energy tracking or selective gravity application using groupMask).");
 			_classObj.def(pybind11::init<>());
 			_classObj.def_readwrite("gravity", &GravityEngine::gravity, "Acceleration [kgms⁻²]");
@@ -41,7 +41,7 @@ class CentralGravityEngine: public FieldApplier {
 		bool reciprocal;
 		int mask;
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<CentralGravityEngine, FieldApplier, std::shared_ptr<CentralGravityEngine>> _classObj(_module, "CentralGravityEngine", "Engine applying acceleration to all bodies, towards a central body.");
 			_classObj.def(pybind11::init<>());
 			_classObj.def_readwrite("centralBody", &CentralGravityEngine::centralBody, "The :yref:`body<Body>` towards which all other bodies are attracted.");
@@ -64,7 +64,7 @@ class AxialGravityEngine: public FieldApplier {
 	Real acceleration;
 	int mask;
 	
-	virtual void pyRegisterClass(pybind11::module_ _module) override {
+	SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 		pybind11::class_<AxialGravityEngine, FieldApplier, std::shared_ptr<AxialGravityEngine>> _classObj(_module, "AxialGravityEngine", "Apply acceleration (independent of distance) directed towards an axis.");
 		_classObj.def(pybind11::init<>());
 		_classObj.def_readwrite("axisPoint", &AxialGravityEngine::axisPoint, "Point through which the axis is passing.");

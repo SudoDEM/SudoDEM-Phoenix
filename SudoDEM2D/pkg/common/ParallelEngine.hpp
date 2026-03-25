@@ -15,7 +15,7 @@ class ParallelEngine: public Engine {
 		
 		ParallelEngine() : ompThreads(2) {}
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<ParallelEngine, Engine, std::shared_ptr<ParallelEngine>> _classObj(_module, "ParallelEngine", "Engine for running other Engine in parallel.");
 			_classObj.def(pybind11::init<>());
 			_classObj.def(pybind11::init([](const pybind11::list& slaves2){

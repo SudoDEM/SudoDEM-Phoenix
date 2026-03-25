@@ -2,6 +2,8 @@
 #include<sudodem/pkg/common/Wall.hpp>
 #include<sudodem/pkg/common/Aabb.hpp>
 
+REGISTER_CLASS_INDEX_CPP(Wall,Shape)
+REGISTER_CLASS_INDEX_CPP(Fwall,Shape)
 
 Wall::~Wall(){} // vtable
 Fwall::~Fwall(){}

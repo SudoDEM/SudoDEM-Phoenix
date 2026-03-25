@@ -21,7 +21,7 @@ class TorqueEngine: public PartialEngine{
 			}
 		}
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<TorqueEngine, PartialEngine, std::shared_ptr<TorqueEngine>> _classObj(_module, "TorqueEngine", "Apply given torque (momentum) value at every subscribed particle, at every step.");
 			_classObj.def(pybind11::init<>());
 			_classObj.def_readwrite("moment", &TorqueEngine::moment, "Torque value to be applied.");

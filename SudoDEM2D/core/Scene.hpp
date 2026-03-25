@@ -119,7 +119,7 @@ class Scene: public Serializable{
 		std::chrono::system_clock::time_point prevTime; //Time value on the previous step
 
 	public:
-		virtual void pyRegisterClass(pybind11::module_ _module) override;
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override;
 
 		// Use REGISTER_ATTRIBUTES macro for serialization - automatically handles preLoad/postLoad
 		REGISTER_ATTRIBUTES(Serializable,

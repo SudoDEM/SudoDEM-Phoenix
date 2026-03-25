@@ -135,25 +135,11 @@ public:
         // Use REGISTER_ATTRIBUTES for serialization
         REGISTER_ATTRIBUTES(Shape, rxy, ref_rxy, rx, ry, eps, isSphere);
 
-        virtual void pyRegisterClass(pybind11::module_ _module) override {
-            pybind11::class_<Superellipse, Shape, std::shared_ptr<Superellipse>> _classObj(_module, "Superellipse", "Superellipse shape.");
-            _classObj.def(pybind11::init<>());
-            _classObj.def_readwrite("rxy", &Superellipse::rxy, "length of half-axis in the two driections, x,y, local coordinate system");
-            _classObj.def_readwrite("ref_rxy", &Superellipse::ref_rxy, "reference length of half-axis in the two driections, x,y, local coordinate system");
-            _classObj.def_readwrite("rx", &Superellipse::rx, "length of half-axis in the two driections, x,y,z, local coordinate system");
-            _classObj.def_readwrite("ry", &Superellipse::ry, "length of half-axis in the two driections, x,y,z, local coordinate system");
-            _classObj.def_readwrite("eps", &Superellipse::eps, "parameter eps in the surfce funtion, i.e., (x/a)^(2/eps)+(y/b)^(2/eps)=1");
-            _classObj.def_readwrite("isSphere", &Superellipse::isSphere, "the shape is non-spherical by default. Using this flag for accelerating spherical systems");
-            _classObj.def("Initial",&Superellipse::Initial,"Initialization");
-            _classObj.def("getArea",&Superellipse::getArea,"return particle's area");
-            _classObj.def("getrxy",&Superellipse::getrxy,"return particle's rxy");
-            _classObj.def("geteps",&Superellipse::geteps,"return particle's eps");
-            _classObj.def("getInertia",&Superellipse::getInertia,"return particle's inertia tensor");
-            _classObj.def("getOri",&Superellipse::getOrientation,"return particle's orientation");
-                                    _classObj.def("getCentroid",&Superellipse::getPosition,"return particle's centroid");
-                                }
-            REGISTER_CLASS_NAME_DERIVED(Superellipse);
-            REGISTER_CLASS_INDEX(Superellipse,Shape);};
+        SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override;
+
+		REGISTER_CLASS_NAME_DERIVED(Superellipse);
+		REGISTER_CLASS_INDEX_H(Superellipse,Shape)
+};
 REGISTER_SERIALIZABLE_BASE(Superellipse, Shape);
 
 
@@ -193,7 +179,7 @@ class SuperellipseGeom: public IGeom{
 		void precompute(const State& rbp1, const State& rbp2, const Scene* scene, const shared_ptr<Interaction>& c, const Vector2r& currentNormal, bool isNew, const Vector2r& shift2);
 		Vector2r& rotate(Vector2r& shearForce) const;
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<SuperellipseGeom, IGeom, std::shared_ptr<SuperellipseGeom>> _classObj(_module, "SuperellipseGeom", "Geometry of interaction between 2 :yref:`vector<Superellipse>`, including volumetric characteristics");
 			_classObj.def(pybind11::init<>());
 			_classObj.def_readwrite("PenetrationDepth", &SuperellipseGeom::PenetrationDepth, "PenetrationDepth");
@@ -211,7 +197,7 @@ class SuperellipseGeom: public IGeom{
 						_classObj.def_readwrite("isShearNew", &SuperellipseGeom::isShearNew, "");
 									}
 					
-									REGISTER_CLASS_INDEX(SuperellipseGeom,IGeom);
+									REGISTER_CLASS_INDEX_H(SuperellipseGeom,IGeom)
 							};
 					REGISTER_SERIALIZABLE_BASE(SuperellipseGeom, IGeom);
 //***************************************************************************
@@ -223,7 +209,7 @@ class Bo1_Superellipse_Aabb: public BoundFunctor{
 		void go(const shared_ptr<Shape>& ig, shared_ptr<Bound>& bv, const Se2r& se2, const Body*) override;
 		FUNCTOR1D(Superellipse);
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<Bo1_Superellipse_Aabb, BoundFunctor, std::shared_ptr<Bo1_Superellipse_Aabb>> _classObj(_module, "Bo1_Superellipse_Aabb", "Create/update :yref:`Aabb` of a :yref:`Superellipse`");
 			_classObj.def(pybind11::init<>());
 		}
@@ -251,7 +237,7 @@ class SuperellipseMat: public Material{
 		double GetStrength(){return strength;};
 		virtual ~SuperellipseMat(){};
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<SuperellipseMat, Material, std::shared_ptr<SuperellipseMat>> _classObj(_module, "SuperellipseMat", "Elastic material with Coulomb friction.");
 			_classObj.def(pybind11::init<>());
 			// Constructor with keyword arguments for common parameters
@@ -272,7 +258,7 @@ class SuperellipseMat: public Material{
 					_classObj.def_readwrite("IsSplitable", &SuperellipseMat::IsSplitable, "To be splitted ... or not");
 					_classObj.def_readwrite("strength", &SuperellipseMat::strength, "Stress at whis polyhedra of volume 4/3*pi [mm] breaks.");					        }
 			
-							REGISTER_CLASS_INDEX(SuperellipseMat,Material);
+							REGISTER_CLASS_INDEX_H(SuperellipseMat,Material)
 					};
 			REGISTER_SERIALIZABLE_BASE(SuperellipseMat, Material);//material for Hertz-Mindlin model
 class SuperellipseMat2: public SuperellipseMat{
@@ -287,14 +273,14 @@ class SuperellipseMat2: public SuperellipseMat{
 		// Use REGISTER_ATTRIBUTES for serialization
 		REGISTER_ATTRIBUTES(SuperellipseMat, G, nu);
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<SuperellipseMat2, SuperellipseMat, std::shared_ptr<SuperellipseMat2>> _classObj(_module, "SuperellipseMat2", "Elastic material with Coulomb friction.");
 			_classObj.def(pybind11::init<>());
 						_classObj.def_readwrite("G", &SuperellipseMat2::G, "shear modulus (Pa).");
 						_classObj.def_readwrite("nu", &SuperellipseMat2::nu, "Poisson's ratio.");
 					        }
 			
-							REGISTER_CLASS_INDEX(SuperellipseMat2,SuperellipseMat);
+							REGISTER_CLASS_INDEX_H(SuperellipseMat2,SuperellipseMat)
 					};
 			REGISTER_SERIALIZABLE_BASE(SuperellipseMat2, SuperellipseMat);
 //use FrictPhys as the basic class
@@ -311,7 +297,7 @@ class SuperellipsePhys: public FrictPhys{
 		// Use REGISTER_ATTRIBUTES for serialization
 		REGISTER_ATTRIBUTES(FrictPhys, normalViscous, shearViscous, betan, betas);
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<SuperellipsePhys, FrictPhys, std::shared_ptr<SuperellipsePhys>> _classObj(_module, "SuperellipsePhys", "Simple elastic material with friction for volumetric constitutive laws");
 			_classObj.def(pybind11::init<>());
 			_classObj.def_readwrite("normalViscous", &SuperellipsePhys::normalViscous, "Normal viscous component");
@@ -320,7 +306,7 @@ class SuperellipsePhys: public FrictPhys{
 			_classObj.def_readwrite("betas", &SuperellipsePhys::betas, "Shear Damping Ratio. Fraction of the viscous damping coefficient (shear direction) equal to $\\frac{c_{s}}{C_{s,crit}}$.");
 		}
 
-		REGISTER_CLASS_INDEX(SuperellipsePhys,FrictPhys);
+		REGISTER_CLASS_INDEX_H(SuperellipsePhys,FrictPhys)
 };
 REGISTER_SERIALIZABLE_BASE(SuperellipsePhys, FrictPhys);
 
@@ -345,14 +331,14 @@ REGISTER_SERIALIZABLE_BASE(SuperellipsePhys, FrictPhys);
 			//Generate GlList for sliced disks
 			void initSolidGlList(Superellipse* t);
 			//for regenerating glutDisk list if needed
-			static int preSlices;
+			SUDODEM_STATIC_MEMBER_API static int preSlices;
 		public:
-			static bool wire;
-			static int Slices;
+			SUDODEM_STATIC_MEMBER_API static bool wire;
+			SUDODEM_STATIC_MEMBER_API static int Slices;
 
 			virtual void go(const shared_ptr<Shape>&, const shared_ptr<State>&,bool,const GLViewInfo&) override;
 
-			virtual void pyRegisterClass(pybind11::module_ _module) override {
+			SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 				pybind11::class_<Gl1_Superellipse, Functor, std::shared_ptr<Gl1_Superellipse>> _classObj(_module, "Gl1_Superellipse", "Renders :yref:`Superellipse` object");
 				_classObj.def(pybind11::init<>());
 				_classObj.def_readwrite_static("wire", &Gl1_Superellipse::wire, "Only show wireframe (controlled by ``glutSlices`` and ``glutStacks``.");
@@ -366,7 +352,7 @@ REGISTER_SERIALIZABLE_BASE(SuperellipsePhys, FrictPhys);
 		void go(const shared_ptr<IGeom>&, const shared_ptr<Interaction>&, const shared_ptr<Body>&, const shared_ptr<Body>&, bool) override;
 		void draw(const shared_ptr<IGeom>&);
 
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<Gl1_SuperellipseGeom, Functor, std::shared_ptr<Gl1_SuperellipseGeom>> _classObj(_module, "Gl1_SuperellipseGeom", "Render :yref:`SuperellipseGeom` geometry.");
 			_classObj.def(pybind11::init<>());
 		}
@@ -385,7 +371,7 @@ class Ip2_SuperellipseMat_SuperellipseMat_SuperellipsePhys: public IPhysFunctor{
 			const shared_ptr<Interaction>& interaction) override;
 		FUNCTOR2D(SuperellipseMat,SuperellipseMat);
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<Ip2_SuperellipseMat_SuperellipseMat_SuperellipsePhys, IPhysFunctor, std::shared_ptr<Ip2_SuperellipseMat_SuperellipseMat_SuperellipsePhys>> _classObj(_module, "Ip2_SuperellipseMat_SuperellipseMat_SuperellipsePhys", "");
 			_classObj.def(pybind11::init<>());
 		}
@@ -411,7 +397,7 @@ public:
 	SuperellipseLaw() : shearForce(Vector2r::Zero()), traceEnergy(false), plastDissipIx(-1), elastPotentialIx(-1) {}
 	FUNCTOR2D(SuperellipseGeom,FrictPhys);
 	
-	virtual void pyRegisterClass(pybind11::module_ _module) override {
+	SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 		pybind11::class_<SuperellipseLaw, LawFunctor, std::shared_ptr<SuperellipseLaw>> _classObj(_module, "SuperellipseLaw", "Calculate physical response of 2 :yref:`vector<Superellipse>` in interaction, based on penetration configuration given by :yref:`SuperellipseGeom`.");
 		_classObj.def(pybind11::init<>());
 		_classObj.def_readwrite("shearForce", &SuperellipseLaw::shearForce, "Shear force from last step");

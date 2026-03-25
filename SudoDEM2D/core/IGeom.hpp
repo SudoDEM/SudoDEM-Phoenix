@@ -16,7 +16,7 @@
 
 class IGeom : public Serializable, public Indexable
 {
-	REGISTER_INDEX_COUNTER(IGeom);
+	REGISTER_INDEX_COUNTER_H(IGeom)
 public:
 	// Cereal serialization
 	friend class cereal::access;
@@ -25,7 +25,7 @@ public:
 		ar(cereal::base_class<Serializable>(this));
 	}
 
-	virtual void pyRegisterClass(pybind11::module_ _module) override {
+	SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 		checkPyClassRegistersItself("IGeom");
 		pybind11::class_<IGeom, Serializable, std::shared_ptr<IGeom>> _classObj(_module, "IGeom", "Geometrical configuration of interaction");
 		_classObj.def(pybind11::init<>());

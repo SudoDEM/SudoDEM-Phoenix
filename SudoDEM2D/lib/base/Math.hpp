@@ -161,14 +161,16 @@ template<typename Scalar> Quaternion<Scalar> operator+(Quaternion<Scalar> q1, co
 */
 template<typename Scalar>
 struct Math{
-	static const Scalar PI;
-	static const Scalar HALF_PI;
-	static const Scalar TWO_PI;
-	static const Scalar MAX_REAL;
-	static const Scalar DEG_TO_RAD;
-	static const Scalar RAD_TO_DEG;
-	static const Scalar EPSILON;
-	static const Scalar ZERO_TOLERANCE;
+	
+	inline static constexpr Scalar PI = Scalar(3.1415926535897932384626433832795L);
+    inline static constexpr Scalar HALF_PI = Scalar(0.5) * PI;
+    inline static constexpr Scalar TWO_PI = Scalar(2.0) * PI;
+    inline static constexpr Scalar MAX_REAL = std::numeric_limits<Scalar>::max();
+    inline static constexpr Scalar DEG_TO_RAD = PI / Scalar(180.0);
+    inline static constexpr Scalar RAD_TO_DEG = Scalar(180.0) / PI;
+    inline static constexpr Scalar EPSILON = std::numeric_limits<Scalar>::epsilon();
+    inline static constexpr Scalar ZERO_TOLERANCE = Scalar(1e-20);
+	
 	static Scalar Sign(Scalar f){ if(f<0) return -1; if(f>0) return 1; return 0; }
 
 	static Scalar UnitRandom(){ return ((double)rand()/((double)(RAND_MAX))); }
@@ -233,7 +235,7 @@ VECTOR6_TEMPLATE(Scalar) tensor_toVoigt(const MATRIX3_TEMPLATE(Scalar)& m, bool 
 
 
 
-__attribute__((unused))
+[[maybe_unused]]
 const Real NaN(std::numeric_limits<Real>::signaling_NaN());
 
 // void quaternionToEulerAngles (const Quaternionr& q, Vector3r& eulerAngles,Real threshold=1e-6f);

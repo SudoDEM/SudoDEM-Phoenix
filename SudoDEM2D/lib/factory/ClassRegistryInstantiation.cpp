@@ -4,7 +4,7 @@
 *  Singleton<ClassRegistry>::self to be exported from the library.
 *************************************************************************/
 
-#include "ClassRegistry.hpp"
+#include <sudodem/lib/factory/ClassRegistry.hpp>
 
 // Explicit instantiation of the static member Singleton<ClassRegistry>::self BEFORE the class instantiation
 // This must come before the class instantiation

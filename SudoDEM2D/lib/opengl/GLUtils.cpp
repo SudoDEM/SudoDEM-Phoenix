@@ -1,4 +1,4 @@
-#include"GLUtils.hpp"
+#include <sudodem/lib/opengl/GLUtils.hpp>
 
 void GLUtils::Parallelepiped(const Vector3r& a, const Vector3r& b, const Vector3r& c){
    glBegin(GL_LINE_STRIP);

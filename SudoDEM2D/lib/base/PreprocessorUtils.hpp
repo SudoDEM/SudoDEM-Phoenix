@@ -33,3 +33,27 @@
 #define SUDODEM_EXPAND(x) x
 #define SUDODEM_EMPTY()
 #define SUDODEM_COMMA() ,
+
+#ifdef _MSC_VER
+    #define SUDODEM_NOINLINE __declspec(noinline)
+#else
+    #define SUDODEM_NOINLINE __attribute__((noinline))
+#endif
+
+#if defined(_WIN32)
+  #define SUDODEM_PYREGISTER_CLASS_API
+#elif defined(__GNUC__)
+  #define SUDODEM_PYREGISTER_CLASS_API __attribute__((visibility("default")))
+#else
+  #define SUDODEM_PYREGISTER_CLASS_API
+#endif
+
+#if defined(_WIN32)
+  #ifdef SUDODEM_STATIC_MEMBER_ORIGIN
+    #define SUDODEM_STATIC_MEMBER_API __declspec(dllexport)
+  #else
+    #define SUDODEM_STATIC_MEMBER_API __declspec(dllimport)
+  #endif
+#else
+  #define SUDODEM_STATIC_MEMBER_API
+#endif

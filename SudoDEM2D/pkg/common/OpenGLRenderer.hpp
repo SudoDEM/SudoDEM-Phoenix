@@ -17,7 +17,7 @@ struct GlExtraDrawer: public Serializable{
 	
 	GlExtraDrawer() : scene(nullptr), dead(false) {}
 	
-	virtual void pyRegisterClass(pybind11::module_ _module) override {
+	SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 		pybind11::class_<GlExtraDrawer, Serializable, std::shared_ptr<GlExtraDrawer>> _classObj(_module, "GlExtraDrawer", "Performing arbitrary OpenGL drawing commands; called from :yref:`OpenGLRenderer` (see :yref:`OpenGLRenderer.extraDrawers`) once regular rendering routines will have finished.\n\nThis class itself does not render anything, derived classes should override the *render* method.");
 		_classObj.def(pybind11::init<>());
 		_classObj.def_readwrite("dead", &GlExtraDrawer::dead, "Deactivate the object (on error/exception).");
@@ -125,7 +125,7 @@ class OpenGLRenderer : public Serializable
 
 		OpenGLRenderer() : dispScale(Vector2r::Ones()), rotScale(1), lightPos(Vector3r(75,130,0)), light2Pos(Vector3r(-130,75,30)), lightColor(Vector3r(0.6,0.6,0.6)), light2Color(Vector3r(0.5,0.5,0.1)), cellColor(Vector3r(1,1,0)), bgColor(Vector3r(.32,.34,.43)), wire(false), light1(true), light2(true), dof(false), id(false), bound(false), shape(true), intrWire(false), intrGeom(false), intrPhys(false), ghosts(true), mask(~0), selId(Body::ID_NONE), intrAllWire(false), scene(nullptr), viewDirection(Vector2r::Zero()), viewInfo(GLViewInfo()), highlightEmission0(Vector3r::Zero()), highlightEmission1(Vector3r::Zero()) {}
 
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<OpenGLRenderer, Serializable, std::shared_ptr<OpenGLRenderer>> _classObj(_module, "OpenGLRenderer", "Class responsible for rendering scene on OpenGL devices.");
 			_classObj.def(pybind11::init<>());
 			_classObj.def_readwrite("dispScale", &OpenGLRenderer::dispScale, "Artificially enlarge (scale) dispalcements from bodies' :yref:`reference positions<State.refPos>` by this relative amount, so that they become better visible (independently in 3 dimensions). Disbled if (1,1,1).");

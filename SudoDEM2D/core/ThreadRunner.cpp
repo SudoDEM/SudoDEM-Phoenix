@@ -7,8 +7,8 @@
 *************************************************************************/
 
 #include <sudodem/lib/base/Logging.hpp>
-#include "ThreadRunner.hpp"
-#include "ThreadWorker.hpp"
+#include <sudodem/core/ThreadRunner.hpp>
+#include <sudodem/core/ThreadWorker.hpp>
 
 #include <thread>
 #include <functional>

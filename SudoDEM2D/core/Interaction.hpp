@@ -77,7 +77,7 @@ class Interaction: public Serializable{
 		}
 
 	public:
-		virtual void pyRegisterClass(pybind11::module_ _module) override;
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override;
 };
 
 REGISTER_SERIALIZABLE(Interaction);

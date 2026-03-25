@@ -1,4 +1,4 @@
-#include<sudodem/pkg/common/Dispatching.hpp>
+#include <sudodem/pkg/common/Dispatching.hpp>
 
 BoundFunctor::~BoundFunctor(){};
 IGeomFunctor::~IGeomFunctor(){};

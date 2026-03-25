@@ -76,8 +76,8 @@ class State: public Serializable, public Indexable{
 			ar(CEREAL_NVP(densityScaling));
 		}
 
-		virtual void pyRegisterClass(pybind11::module_ _module) override;
-	REGISTER_INDEX_COUNTER(State);
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override;
+	REGISTER_INDEX_COUNTER_H(State)
 	DECLARE_LOGGER;
 };
 

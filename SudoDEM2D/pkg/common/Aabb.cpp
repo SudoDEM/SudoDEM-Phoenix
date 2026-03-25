@@ -1,9 +1,10 @@
 #include <sudodem/pkg/common/Aabb.hpp>
 
+REGISTER_CLASS_INDEX_CPP(Aabb,Bound)
 
 #ifdef SUDODEM_OPENGL
 #include <sudodem/lib/opengl/OpenGLWrapper.hpp>
-#include<sudodem/lib/opengl/GLUtils.hpp>
+#include <sudodem/lib/opengl/GLUtils.hpp>
 #include <sudodem/core/Scene.hpp>
 
 		void Gl1_Aabb::go(const shared_ptr<Bound>& bv, Scene* scene){

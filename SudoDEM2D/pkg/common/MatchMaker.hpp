@@ -37,7 +37,7 @@ class MatchMaker: public Serializable {
 		// if no match is found and val1 or val2 are not given, throw exception
 		Real operator()(const int id1, const int id2, const Real val1=NaN, const Real val2=NaN) const;
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<MatchMaker, Serializable, std::shared_ptr<MatchMaker>> _classObj(_module, "MatchMaker", "Class matching pair of ids to return pre-defined (for a pair of ids defined in :yref:`matches<MatchMaker.matches>`) or derived value (computed using :yref:`algo<MatchMaker.algo>`) of a scalar parameter. It can be called (``id1``, ``id2``, ``val1=NaN``, ``val2=NaN``) in both python and c++. \n\n.. note:: There is a :ref:`converter <customconverters>` from python number defined for this class, which creates a new :yref:`MatchMaker` returning the value of that number; instead of giving the object instance therefore, you can only pass the number value and it will be converted automatically.");
 			_classObj.def(pybind11::init<>());
 			_classObj.def(pybind11::init<std::string>());

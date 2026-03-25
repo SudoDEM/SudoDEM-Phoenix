@@ -1,9 +1,9 @@
 // 2008 © Václav Šmilauer <eudoxos@arcig.cz>
 #pragma once
 
-#include<vector>
-#include<iostream>
-#include<cassert>
+#include <vector>
+#include <iostream>
+#include <cassert>
 
 /* Linear interpolation function suitable only for sequential interpolation.
  *

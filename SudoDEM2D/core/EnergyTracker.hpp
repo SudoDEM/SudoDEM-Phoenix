@@ -67,7 +67,7 @@ class EnergyTracker: public Serializable{
 	}
 
 	public:
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			checkPyClassRegistersItself("EnergyTracker");
 			pybind11::class_<EnergyTracker, Serializable, std::shared_ptr<EnergyTracker>> _classObj(_module, "EnergyTracker", "Storage for tracing energies. Only to be used if :yref:`O.trackEnergy<Omega.trackEnergy>` is True.");
 			_classObj.def(pybind11::init<>());

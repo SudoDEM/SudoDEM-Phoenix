@@ -16,7 +16,7 @@
 
 class IPhys : public Serializable, public Indexable
 {
-	REGISTER_INDEX_COUNTER(IPhys);
+	REGISTER_INDEX_COUNTER_H(IPhys)
 public:
 	// Cereal serialization
 	friend class cereal::access;
@@ -25,7 +25,7 @@ public:
 		ar(cereal::base_class<Serializable>(this));
 	}
 
-	virtual void pyRegisterClass(pybind11::module_ _module) override {
+	SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 		checkPyClassRegistersItself("IPhys");
 		pybind11::class_<IPhys, Serializable, std::shared_ptr<IPhys>> _classObj(_module, "IPhys", "Physical (material) properties of interaction.");
 		_classObj.def(pybind11::init<>());

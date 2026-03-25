@@ -25,7 +25,7 @@ class StepDisplacer: public PartialEngine {
 			}
 		}
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<StepDisplacer, PartialEngine, std::shared_ptr<StepDisplacer>> _classObj(_module, "StepDisplacer", "Apply generalized displacement (displacement or rotation) stepwise on subscribed bodies. Could be used for purposes of contact law tests (by moving one disk compared to another), but in this case, see rather :yref:`LawTester`");
 			_classObj.def(pybind11::init<>());
 			_classObj.def_readwrite("mov", &StepDisplacer::mov, "Linear displacement step to be applied per iteration, by addition to :yref:`State.pos`.");

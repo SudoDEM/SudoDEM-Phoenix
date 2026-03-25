@@ -2,8 +2,8 @@
 //
 
 
-#include"sudodem/pkg/dem/Superellipse.hpp"
-#include"sudodem/pkg/common/Disk.hpp"
+#include<sudodem/pkg/dem/Superellipse.hpp>
+#include<sudodem/pkg/common/Disk.hpp>
 
 #include<sudodem/core/Scene.hpp>
 #include<sudodem/core/Omega.hpp>
@@ -12,7 +12,7 @@
 #include<sudodem/lib/pyutil/doc_opts.hpp>
 #include<cmath>
 
-#include<numpy/ndarrayobject.h>
+#include <numpy/ndarrayobject.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
@@ -129,8 +129,8 @@ void write_radial_gradient_def_blue( std::ostream & os, const std::string & name
 }
 
 
-ObjectsSet particleObjects(int slice, float line_width, float fill_opacity, bool draw_filled, bool draw_lines,bool color_po, Vector3r po_color, Vector3r solo_color){
-	ObjectsSet objetos ;  // set of objects in the figure
+MSVG_ObjectsSet particleObjects(int slice, float line_width, float fill_opacity, bool draw_filled, bool draw_lines,bool color_po, Vector3r po_color, Vector3r solo_color){
+	MSVG_ObjectsSet objetos ;  // set of objects in the figure
 	//add objects
 	//output superquadrics
 	Scene* scene=Omega::instance().getScene().get();
@@ -148,7 +148,7 @@ ObjectsSet particleObjects(int slice, float line_width, float fill_opacity, bool
 		//std::cerr << "getClassName= " << b->shape->getClassName() << "\n";
 		Vector3r color = (solo_color.norm()==0?b->shape->color:solo_color);
 		double po_value = 0.0;//color for particle orientation
-		std::shared_ptr<Polygon> poly = std::shared_ptr<Polygon>(new Polygon());
+		std::shared_ptr<MSVG_Polygon> poly = std::make_shared<MSVG_Polygon>();
 
 		State* state=b->state.get();
 		//Euler Angles from Quaternion
@@ -212,8 +212,8 @@ ObjectsSet particleObjects(int slice, float line_width, float fill_opacity, bool
 	return objetos;
 }
 
-ObjectsSet forceChainObjects(float line_width, float fill_opacity, Vector3r line_color){
-	ObjectsSet objetos ;  // set of objects in the figure
+MSVG_ObjectsSet forceChainObjects(float line_width, float fill_opacity, Vector3r line_color){
+	MSVG_ObjectsSet objetos ;  // set of objects in the figure
 	//add objects
 	//output superquadrics
 	Scene* scene=Omega::instance().getScene().get();
@@ -229,7 +229,7 @@ ObjectsSet forceChainObjects(float line_width, float fill_opacity, Vector3r line
 		double fn = (nsi->normalForce).norm();
 		if (fn == 0)continue;
 
-		std::shared_ptr<Polygon> poly = std::shared_ptr<Polygon>(new Polygon());
+		std::shared_ptr<MSVG_Polygon> poly = std::make_shared<MSVG_Polygon>();
 		//Vector2r ft = nsi->shearForce;
 		force += fn ;//here we constructe a positive stress tensor
 		force_num ++;
@@ -262,7 +262,7 @@ ObjectsSet forceChainObjects(float line_width, float fill_opacity, Vector3r line
 	//mean force
 	force /=force_num;
 	for(auto ob:objetos.objetos){
-		Polygon *poly = dynamic_cast<Polygon*>(ob.get());
+		MSVG_Polygon *poly = dynamic_cast<MSVG_Polygon*>(ob.get());
 		double w = poly->style.lines_width * (line_width/force);
 
 		if(w<0.1*line_width){
@@ -299,8 +299,8 @@ void drawSVG( const std::string & filename, float width_cm = 10.0, int slice = 2
 
    SVGContext ctx ;
    ctx.os = &fout ;
-	 ObjectsSet objetos = particleObjects(slice,line_width,fill_opacity,draw_filled,draw_lines,color_po,po_color,solo_color);  // set of objects in the figure
-	 ObjectsSet objetos2;//used for force chains
+	 MSVG_ObjectsSet objetos = particleObjects(slice,line_width,fill_opacity,draw_filled,draw_lines,color_po,po_color,solo_color);  // set of objects in the figure
+	 MSVG_ObjectsSet objetos2;//used for force chains
 	 if(draw_forcechain){
 		 objetos2 = forceChainObjects(force_line_width, force_fill_opacity, force_line_color);
 		 /*for(auto ob:objetos2.objetos){

@@ -1,36 +1,36 @@
 // 2007 © Václav Šmilauer <eudoxos@arcig.cz>
-#include"Shop.hpp"
+#include <sudodem/pkg/dem/Shop.hpp>
 
-#include"sudodem/core/Scene.hpp"
-#include"sudodem/core/Body.hpp"
-#include"sudodem/core/Interaction.hpp"
+#include <sudodem/core/Scene.hpp>
+#include <sudodem/core/Body.hpp>
+#include <sudodem/core/Interaction.hpp>
 
-#include"sudodem/pkg/common/Aabb.hpp"
-#include"sudodem/core/Clump.hpp"
-#include"sudodem/pkg/common/InsertionSortCollider.hpp"
+#include <sudodem/pkg/common/Aabb.hpp>
+#include <sudodem/core/Clump.hpp>
+#include <sudodem/pkg/common/InsertionSortCollider.hpp>
 
-//#include"sudodem/pkg/common/Box.hpp"
-#include"sudodem/pkg/common/Disk.hpp"
-#include"sudodem/pkg/common/ElastMat.hpp"
-//#include"sudodem/pkg/dem/ViscoelasticPM.hpp"
+//#include <sudodem/pkg/common/Box.hpp>
+#include <sudodem/pkg/common/Disk.hpp>
+#include <sudodem/pkg/common/ElastMat.hpp>
+//#include <sudodem/pkg/dem/ViscoelasticPM.hpp>
 
 
-//#include"sudodem/pkg/common/Bo1_Aabb.hpp"
-#include"sudodem/pkg/dem/NewtonIntegrator.hpp"
-#include"sudodem/pkg/dem/Ig2_Basic_ScGeom.hpp"
-#include"sudodem/pkg/dem/FrictPhys.hpp"
+//#include <sudodem/pkg/common/Bo1_Aabb.hpp>
+#include <sudodem/pkg/dem/NewtonIntegrator.hpp>
+#include <sudodem/pkg/dem/Ig2_Basic_ScGeom.hpp>
+#include <sudodem/pkg/dem/FrictPhys.hpp>
 
-#include"sudodem/pkg/common/ForceResetter.hpp"
+#include <sudodem/pkg/common/ForceResetter.hpp>
 
-#include"sudodem/pkg/common/Dispatching.hpp"
-#include"sudodem/pkg/common/InteractionLoop.hpp"
-#include"sudodem/pkg/common/GravityEngines.hpp"
+#include <sudodem/pkg/common/Dispatching.hpp>
+#include <sudodem/pkg/common/InteractionLoop.hpp>
+#include <sudodem/pkg/common/GravityEngines.hpp>
 
-//#include"sudodem/pkg/dem/GlobalStiffnessTimeStepper.hpp"
-#include"sudodem/pkg/dem/ElasticContactLaw.hpp"
+//#include <sudodem/pkg/dem/GlobalStiffnessTimeStepper.hpp>
+#include <sudodem/pkg/dem/ElasticContactLaw.hpp>
 
-#include"sudodem/pkg/dem/ScGeom.hpp"
-#include"sudodem/pkg/dem/FrictPhys.hpp"
+#include <sudodem/pkg/dem/ScGeom.hpp>
+#include <sudodem/pkg/dem/FrictPhys.hpp>
 
 
 CREATE_LOGGER(Shop);

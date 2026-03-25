@@ -29,7 +29,7 @@ class Recorder: public PeriodicEngine{
 			return false;
 		}
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<Recorder, PeriodicEngine, std::shared_ptr<Recorder>> _classObj(_module, "Recorder", "Engine periodically storing some data to (one) external file. In addition PeriodicEngine, it handles opening the file as needed. See :yref:`PeriodicEngine` for controlling periodicity.");
 			_classObj.def(pybind11::init<>());
 			_classObj.def_readwrite("file", &Recorder::file, "Name of file to save to; must not be empty.");

@@ -515,7 +515,7 @@ bool QGLViewer::saveImageSnapshot(const QString& fileName)
    const int nbImages = 36;
    for (int i=0; i<nbImages; ++i)
 	 {
-	   camera()->setOrientation(2.0*M_PI/nbImages, 0.0); // Theta-Phi orientation
+	   camera()->setOrientation(Mathr::TWO_PI/nbImages, 0.0); // Theta-Phi orientation
 	   showEntireScene();
 	   update(); // calls draw(), which emits drawFinished(), which calls saveSnapshot()
 	 }

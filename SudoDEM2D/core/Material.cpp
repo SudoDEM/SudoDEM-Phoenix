@@ -38,3 +38,5 @@ void Material::pyRegisterClass(pybind11::module_ _module) {
 	_classObj.def_property_readonly("dispIndex", [](std::shared_ptr<Material> m){ return Indexable_getClassIndex(m); }, "Return class index of this instance.");
 	_classObj.def("dispHierarchy", [](std::shared_ptr<Material> m, bool names=true){ return Indexable_getClassIndices(m, names); }, pybind11::arg("names")=true, "Return list of dispatch classes (from down upwards), starting with the class instance itself, top-level indexable at last. If names is true (default), return class names rather than numerical indices.");
 }
+
+REGISTER_INDEX_COUNTER_CPP(Material)

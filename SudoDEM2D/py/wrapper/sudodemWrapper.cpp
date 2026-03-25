@@ -1,20 +1,20 @@
 // 2007,2008 © Václav Šmilauer <eudoxos@arcig.cz>
 
-#include<sudodem/lib/base/Math.hpp>
-#include<unistd.h>
-#include<list>
-#include<signal.h>
-#include<memory>
+#include <sudodem/lib/base/Math.hpp>
+#include <list>
+#include <signal.h>
+#include <memory>
 
-#include<pybind11/pybind11.h>
-#include<pybind11/stl.h>
-#include<pybind11/eigen.h>
-#include<pybind11/functional.h>
-#include<pybind11/chrono.h>
-#include<functional>
-#include<thread>
-#include<chrono>
-#include<algorithm>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11/eigen.h>
+#include <pybind11/functional.h>
+#include <pybind11/chrono.h>
+#include <functional>
+#include <thread>
+#include <chrono>
+#include <algorithm>
+#include <limits>
 
 #include<sudodem/lib/base/Logging.hpp>
 #include<sudodem/lib/pyutil/gil.hpp>
@@ -86,6 +86,8 @@ void pybind_init__superellipse_utils(pybind11::module& m);
 #include<sudodem/pkg/dem/FrictPhys.hpp>
 #include<sudodem/pkg/common/NormShearPhys.hpp>
 #include<sudodem/core/IPhys.hpp>
+#include<sudodem/pkg/dem/Ig2_Basic_ScGeom.hpp>
+#include<sudodem/pkg/dem/ElasticContactLaw.hpp>
 
 //#include<sudodem/pkg/dem/STLImporter.hpp>
 
@@ -289,7 +291,7 @@ class pyBodyContainer{
 			vector<Real> relRadTmp(numCM), relVolTmp(numCM);
 			vector<Vector2r> relPosTmp(numCM);
 			Vector2r relPosTmpMean = Vector2r::Zero();
-			Real rMin=1./0.; AlignedBox2r aabb;
+			Real rMin=std::numeric_limits<Real>::infinity(); AlignedBox2r aabb;
 			for (int jj = 0; jj < numCM; jj++) {
 				relRadTmp[jj] = pybind11::cast<Real>(relRadListTmp[jj]);
 				relVolTmp[jj] = (4./3.)*Mathr::PI*pow(relRadTmp[jj],3.);
@@ -362,7 +364,14 @@ class pyBodyContainer{
 			omp_init_lock(&locker);//since bodies are created and deleted in following sections, it is neccessary to lock critical parts of the code (avoid seg fault)
 			#pragma omp parallel for schedule(dynamic) shared(locker)
 			for(int i=0; i<numReplaceTmp; i++) {
-				while (! omp_test_lock(&locker)) usleep(1);
+
+				while (! omp_test_lock(&locker)) 
+				#ifdef _WIN32
+					std::this_thread::sleep_for(std::chrono::microseconds(1));
+				#else
+					usleep(1);
+				#endif
+
 				const shared_ptr<Body>& b = bpListTmp[i];
 				LOG_DEBUG("replaceByClumps: Started processing body "<<bpListTmp[i]->id<<" in parallel ...");
 			#else
@@ -695,7 +704,17 @@ class pyOmega{
 	void step() { if(OMEGA.isRunning()) throw runtime_error("Called O.step() while simulation is running."); OMEGA.getScene()->moveToNextTimeStep(); /* LOG_DEBUG("STEP!"); run(1); wait(); */ }
 	void wait(){
 		if(OMEGA.isRunning()){LOG_DEBUG("WAIT!");} else return;
-		timespec t1,t2; t1.tv_sec=0; t1.tv_nsec=40000000; /* 40 ms */ Py_BEGIN_ALLOW_THREADS; while(OMEGA.isRunning()) nanosleep(&t1,&t2); Py_END_ALLOW_THREADS;
+		timespec t1,t2; t1.tv_sec=0; t1.tv_nsec=40000000; /* 40 ms */ Py_BEGIN_ALLOW_THREADS; 
+		while(OMEGA.isRunning())
+		{
+			#ifdef _WIN32
+				std::this_thread::sleep_for(std::chrono::milliseconds(40));
+			#else
+				nanosleep(&t1,&t2); 
+			#endif
+		} 
+		
+		Py_END_ALLOW_THREADS;
 		if(!OMEGA.simulationLoop->workerThrew) return;
 		LOG_ERROR("Simulation error encountered."); OMEGA.simulationLoop->workerThrew=false; throw OMEGA.simulationLoop->workerException;
 	}
@@ -1092,6 +1111,8 @@ PYBIND11_MODULE(wrapper, m)
 	// std::cerr << "DEBUG: Registering GL shape functors with ClassRegistry..." << std::endl;
 	ClassRegistry::instance().registerClassWithBase<Gl1_Wall, GlShapeFunctor>(__FILE__);
 	ClassRegistry::instance().registerClassWithBase<Gl1_Fwall, GlShapeFunctor>(__FILE__);
+	ClassRegistry::instance().registerClassWithBase<Gl1_Disk, GlShapeFunctor>(__FILE__);
+
 #endif
 	
 	// std::cerr << "DEBUG: Core pybind11 registration done" << std::endl;
@@ -1139,22 +1160,34 @@ PYBIND11_MODULE(wrapper, m)
 	// std::cerr << "DEBUG: Setting readable class names..." << std::endl;
 	
 	// BoundFunctor 类
+	ClassRegistry::instance().setReadableClassName(typeid(Bo1_Disk_Aabb).name(), "Bo1_Disk_Aabb");
 	ClassRegistry::instance().setReadableClassName(typeid(Bo1_Wall_Aabb).name(), "Bo1_Wall_Aabb");
 	ClassRegistry::instance().setReadableClassName(typeid(Bo1_Fwall_Aabb).name(), "Bo1_Fwall_Aabb");
 	ClassRegistry::instance().setReadableClassName(typeid(Bo1_Superellipse_Aabb).name(), "Bo1_Superellipse_Aabb");
 	
 	// IGeomFunctor 类
+	ClassRegistry::instance().setReadableClassName(typeid(Ig2_Disk_Disk_ScGeom).name(), "Ig2_Disk_Disk_ScGeom");
+	ClassRegistry::instance().setReadableClassName(typeid(Ig2_Wall_Disk_ScGeom).name(), "Ig2_Wall_Disk_ScGeom");
+	ClassRegistry::instance().setReadableClassName(typeid(Ig2_Fwall_Disk_ScGeom).name(), "Ig2_Fwall_Disk_ScGeom");
+
 	ClassRegistry::instance().setReadableClassName(typeid(Ig2_Wall_Superellipse_SuperellipseGeom).name(), "Ig2_Wall_Superellipse_SuperellipseGeom");
 	ClassRegistry::instance().setReadableClassName(typeid(Ig2_Superellipse_Superellipse_SuperellipseGeom).name(), "Ig2_Superellipse_Superellipse_SuperellipseGeom");
 	ClassRegistry::instance().setReadableClassName(typeid(Ig2_Fwall_Superellipse_SuperellipseGeom).name(), "Ig2_Fwall_Superellipse_SuperellipseGeom");
 	
 	// IPhysFunctor 类
+	ClassRegistry::instance().setReadableClassName(typeid(Ip2_FrictMat_FrictMat_FrictPhys).name(), "Ip2_FrictMat_FrictMat_FrictPhys");
+	ClassRegistry::instance().setReadableClassName(typeid(Ip2_FrictMat_FrictMat_ViscoFrictPhys).name(), "Ip2_FrictMat_FrictMat_ViscoFrictPhys");
+
 	ClassRegistry::instance().setReadableClassName(typeid(Ip2_SuperellipseMat_SuperellipseMat_SuperellipsePhys).name(), "Ip2_SuperellipseMat_SuperellipseMat_SuperellipsePhys");
 	
 	// LawFunctor 类
+	ClassRegistry::instance().setReadableClassName(typeid(Law2_ScGeom_FrictPhys_CundallStrack).name(), "Law2_ScGeom_FrictPhys_CundallStrack");
+	ClassRegistry::instance().setReadableClassName(typeid(Law2_ScGeom_ViscoFrictPhys_CundallStrack).name(), "Law2_ScGeom_ViscoFrictPhys_CundallStrack");
+
 	ClassRegistry::instance().setReadableClassName(typeid(SuperellipseLaw).name(), "SuperellipseLaw");
 	
 	// Shape 类
+	ClassRegistry::instance().setReadableClassName(typeid(Disk).name(), "Disk");
 	ClassRegistry::instance().setReadableClassName(typeid(Superellipse).name(), "Superellipse");
 	ClassRegistry::instance().setReadableClassName(typeid(Wall).name(), "Wall");
 	ClassRegistry::instance().setReadableClassName(typeid(Fwall).name(), "Fwall");
@@ -1165,12 +1198,15 @@ PYBIND11_MODULE(wrapper, m)
 	
 	// IPhys 类
 	ClassRegistry::instance().setReadableClassName(typeid(SuperellipsePhys).name(), "SuperellipsePhys");
+	ClassRegistry::instance().setReadableClassName(typeid(NormPhys).name(), "NormPhys");
+	ClassRegistry::instance().setReadableClassName(typeid(NormShearPhys).name(), "NormShearPhys");
 	ClassRegistry::instance().setReadableClassName(typeid(FrictPhys).name(), "FrictPhys");
 	ClassRegistry::instance().setReadableClassName(typeid(ViscoFrictPhys).name(), "ViscoFrictPhys");
-	ClassRegistry::instance().setReadableClassName(typeid(NormShearPhys).name(), "NormShearPhys");
-	ClassRegistry::instance().setReadableClassName(typeid(NormPhys).name(), "NormPhys");
 	
 	// Material 类
+	ClassRegistry::instance().setReadableClassName(typeid(ElastMat).name(), "ElastMat");
+	ClassRegistry::instance().setReadableClassName(typeid(FrictMat).name(), "FrictMat");
+
 	ClassRegistry::instance().setReadableClassName(typeid(SuperellipseMat).name(), "SuperellipseMat");
 	
 	// std::cerr << "DEBUG: Readable class names set" << std::endl;

@@ -78,9 +78,15 @@ Error : libQGLViewer requires a minimum Qt version of 4.0
 
 // GLU was removed from Qt in version 4.8
 #ifdef Q_OS_MAC
-# include <OpenGL/glu.h>
+    #include <OpenGL/glu.h>
 #else
-# include <GL/glu.h>
+
+    #ifdef Q_OS_WIN32
+        #include <windows.h>
+    #endif
+    
+    #include <GL/glu.h>
+    
 #endif
 
 // Container classes interfaces changed a lot in Qt.

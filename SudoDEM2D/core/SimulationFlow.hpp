@@ -8,7 +8,8 @@
 
 #pragma once
 
-#include "ThreadWorker.hpp"
+#include <sudodem/core/ThreadWorker.hpp>
+
 
 class SimulationFlow // FIXME ; bad name
 	: public ThreadWorker

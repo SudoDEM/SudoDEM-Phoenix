@@ -1,9 +1,9 @@
 // 2010 © Václav Šmilauer <eudoxos@arcig.cz>
 
-#include "Scene.hpp"
-#include "Body.hpp"
-#include "BodyContainer.hpp"
-#include "Clump.hpp"
+#include <sudodem/core/Scene.hpp>
+#include <sudodem/core/Body.hpp>
+#include <sudodem/core/BodyContainer.hpp>
+#include <sudodem/core/Clump.hpp>
 #ifdef SUDODEM_OPENMP
 	#include<omp.h>
 #endif
@@ -30,14 +30,14 @@ Body::id_t BodyContainer::insert(shared_ptr<Body>& b){
 bool BodyContainer::erase(Body::id_t id, bool eraseClumpMembers){//default is false (as before)
 	if(!body[id]) return false;
 	const shared_ptr<Body>& b=Body::byId(id);
-	if ((b) and (b->isClumpMember())) {
+	if ((b) && (b->isClumpMember())) {
 		const shared_ptr<Body> clumpBody=Body::byId(b->clumpId);
 		const shared_ptr<Clump> clump=SUDODEM_PTR_CAST<Clump>(clumpBody->shape);
 		Clump::del(clumpBody, b);
 		if (clump->members.size()==0) this->erase(clumpBody->id,false);	//Clump has no members any more. Remove it
 	}
 
-	if ((b) and (b->isClump())){
+	if ((b) && (b->isClump())){
 		//erase all members if eraseClumpMembers is true:
 		const shared_ptr<Clump>& clump=SUDODEM_PTR_CAST<Clump>(b->shape);
 		std::map<Body::id_t,Se2r>& members = clump->members;

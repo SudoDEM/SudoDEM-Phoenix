@@ -3,18 +3,18 @@
 
 #pragma once
 
-#include<locale>
-#include<sstream>
-#include<fstream>
-#include<string>
-#include<cereal/archives/binary.hpp>
-#include<cereal/archives/xml.hpp>
-#include<cereal/types/memory.hpp>
-#include<cereal/types/vector.hpp>
-#include<cereal/types/map.hpp>
-#include<cereal/types/list.hpp>
-#include<cereal/types/array.hpp>
-#include "Compression.hpp"
+#include <locale>
+#include <sstream>
+#include <fstream>
+#include <string>
+#include <cereal/archives/binary.hpp>
+#include <cereal/archives/xml.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/list.hpp>
+#include <cereal/types/array.hpp>
+#include <sudodem/lib/serialization/Compression.hpp>
 
 namespace sudodem{
 /* Utility template functions for (de)serializing objects using Cereal from/to streams or files.

@@ -36,7 +36,7 @@ class Dispatcher: public Engine{
 		ar(cereal::base_class<Engine>(this));
 	}
 
-	virtual void pyRegisterClass(pybind11::module_ _module) {
+	SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) {
 		checkPyClassRegistersItself("Dispatcher");
 		pybind11::class_<Dispatcher, Engine, std::shared_ptr<Dispatcher>> _classObj(_module, "Dispatcher", "Engine dispatching control to its associated functors, based on types of argument it receives. This abstract base class provides no functionality in itself.");
 		_classObj.def(pybind11::init<>());

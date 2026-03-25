@@ -30,7 +30,7 @@ class OpenGLRenderer;
 	virtual ~Klass(){};\
 	virtual string renders() const { throw std::runtime_error(#Klass ": unregistered gldraw class.\n"); };\
 	virtual void initgl() {/*WARNING: it must deal with static members, because it is called from another instance!*/};\
-	public: virtual void pyRegisterClass(pybind11::module_ _module) override {\
+	public: SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {\
 		checkPyClassRegistersItself(#Klass);\
 		pybind11::class_<Klass, Functor, std::shared_ptr<Klass>> _classObj(_module, #Klass, "Abstract functor for rendering :yref:`" #renderedType "` objects.");\
 		_classObj.def(pybind11::init<>());\
@@ -49,14 +49,14 @@ GL_FUNCTOR(GlStateFunctor,TYPELIST_1(const shared_ptr<State>&),State);
 		std::vector<shared_ptr<Functor>> functors;\
 		void updateScenePtr(){ for(const auto& f : functors){ f->scene=scene; }}\
 		void postLoad(Klass&){ clearMatrix(); for(const auto& f : functors) add(SUDODEM_PTR_CAST<Functor>(f)); }\
-		__attribute__((noinline)) virtual void add(Functor* f){ add(shared_ptr<Functor>(f)); }\
-		__attribute__((noinline)) virtual void add(shared_ptr<Functor> f){ static volatile int unique_id = __LINE__; (void)unique_id; bool dupe=false; string fn=f->getClassName(); for(const auto& f2 : functors) { if(fn==f2->getClassName()) dupe=true; } if(!dupe) functors.push_back(f); addFunctor(f); }\
-		__attribute__((noinline)) virtual void addFunctor(shared_ptr<Functor> f){ add1DEntry(f->get1DFunctorType1(),f); }\
+		SUDODEM_NOINLINE virtual void add(Functor* f){ add(shared_ptr<Functor>(f)); }\
+		SUDODEM_NOINLINE virtual void add(shared_ptr<Functor> f){ static volatile int unique_id = __LINE__; (void)unique_id; bool dupe=false; string fn=f->getClassName(); for(const auto& f2 : functors) { if(fn==f2->getClassName()) dupe=true; } if(!dupe) functors.push_back(f); addFunctor(f); }\
+		SUDODEM_NOINLINE virtual void addFunctor(shared_ptr<Functor> f){ add1DEntry(f->get1DFunctorType1(),f); }\
 		pybind11::list functors_get(void) const { pybind11::list ret; for(const auto& f : functors){ ret.append(f); } return ret; }\
 		void functors_set(const std::vector<shared_ptr<Functor>>& ff){ functors.clear(); for(const auto& f : ff) add(f); postLoad(*this); }\
 		void pyHandleCustomCtorArgs(pybind11::tuple& t, pybind11::dict& d) override{ if(pybind11::len(t)==0)return; if(pybind11::len(t)!=1) throw invalid_argument("Exactly one list of " SUDODEM_STRINGIZE(Functor) " must be given."); typedef std::vector<shared_ptr<Functor>> vecF; vecF vf=t[0].cast<vecF>(); functors_set(vf); t=pybind11::tuple(); }\
 	public:\
-		virtual void pyRegisterClass(pybind11::module_ _module) override {\
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {\
 			checkPyClassRegistersItself(#Klass);\
 			pybind11::class_<Klass, Dispatcher, std::shared_ptr<Klass>> _classObj(_module, #Klass, "Dispatcher calling :yref:`functors<" SUDODEM_STRINGIZE(Functor) ">` based on received argument type(s).");\
 			_classObj.def(pybind11::init<>());\

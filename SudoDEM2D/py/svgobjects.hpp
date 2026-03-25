@@ -13,8 +13,7 @@
 
 #include <Eigen/Dense>
 
-typedef Eigen::Matrix<double,2,1> Vector2r;
-typedef Eigen::Matrix<double,3,1> Vector3r;
+
 
 // *****************************************************************************
 // SVGContext:
@@ -34,7 +33,7 @@ class PathStyle
   PathStyle();
   void writeSVG( SVGContext & ctx ); // write style attrs to an svg file
 
-  Vector3r  lines_color,      // lines color, when lines are drawn (draw_lines == true )
+  Eigen::Matrix<double,3,1>  lines_color,      // lines color, when lines are drawn (draw_lines == true )
         fill_color ;      // fill color, when fill is drawn (draw_filled == true)
   bool  draw_lines,       // draw lines joining points (yes/no)
         close_lines,      // when draw_lines == true, join last point with first (yes/no)
@@ -53,29 +52,29 @@ class PathStyle
 // An abstract class for things which can be drawn to an SVG file and can be
 // projected to 2d (must be projected before drawn)
 
-class Object
+class MSVG_Object
 {
   public:
-  Object();
+  MSVG_Object();
   virtual void drawSVG( SVGContext & ctx ) = 0 ;
   virtual void minmax( ) = 0 ;
-  virtual ~Object() ;
-  Vector2r min,max ;
+  virtual ~MSVG_Object() ;
+  Eigen::Matrix<double,2,1> min,max ;
 } ;
 
 // *****************************************************************************
 // class Point
 // A class for an isolated point, drawn with a given radius
 
-class Point : public Object
+class MSVG_Point : public MSVG_Object
 {
   public:
-  Point( Vector2r ppos2D, Vector3r color );
+  MSVG_Point( Eigen::Matrix<double,2,1> ppos2D, Eigen::Matrix<double,3,1> color );
   virtual void drawSVG( SVGContext & ctx ) override;
   virtual void minmax() override;
 
-  Vector3r color ;
-  Vector2r pos2D ;
+  Eigen::Matrix<double,3,1> color ;
+  Eigen::Matrix<double,2,1> pos2D ;
   float radius ; // 0.03 por defecto, se puede cambiar
 };
 
@@ -84,31 +83,31 @@ class Point : public Object
 // Any Object which is described by a sequence of points
 // it can be a polyline, a polygon, a filled polygon.
 
-class Polygon : public Object // secuencia de points
+class MSVG_Polygon : public MSVG_Object // secuencia de points
 {
    public:
-   Polygon();
+   MSVG_Polygon();
    virtual void minmax() override;
    virtual void drawSVG( SVGContext & ctx ) override;
-   virtual ~Polygon() override;
+   virtual ~MSVG_Polygon() override;
 
    PathStyle         style ;
-   std::vector<Vector2r> points2D ; // projected points
+   std::vector<Eigen::Matrix<double,2,1>> points2D ; // projected points
 };
 // *****************************************************************************
 // class ObjectsSet
 // A set of various objects
 
-class ObjectsSet : public Object
+class MSVG_ObjectsSet : public MSVG_Object
 {
    public:
-   ObjectsSet();
+   MSVG_ObjectsSet();
    virtual void minmax() override;
    virtual void drawSVG( SVGContext & ctx ) override;
-   virtual ~ObjectsSet() override;
-   void add( const std::shared_ptr<Object>& pobj );  // add one object
+   virtual ~MSVG_ObjectsSet() override;
+   void add( const std::shared_ptr<MSVG_Object>& pobj );  // add one object
 
-   std::vector<std::shared_ptr<Object>> objetos ;
+   std::vector<std::shared_ptr<MSVG_Object>> objetos ;
 } ;
 
 
@@ -116,22 +115,22 @@ class ObjectsSet : public Object
 // class Segment
 // A polygon with just two points.
 
-class Segment : public Polygon
+class MSVG_Segment : public MSVG_Polygon
 {
    public:
-   Segment( const Vector2r & p0, const Vector2r & vd, const Vector3r & color, float width ) ;
-   Segment( const Vector2r & p0, const Vector2r & p1  );
-   Segment( const Point & p0, const Point & p1, float width );
+   MSVG_Segment( const Eigen::Matrix<double,2,1> & p0, const Eigen::Matrix<double,2,1> & vd, const Eigen::Matrix<double,3,1> & color, float width ) ;
+   MSVG_Segment( const Eigen::Matrix<double,2,1> & p0, const Eigen::Matrix<double,2,1> & p1  );
+   MSVG_Segment( const MSVG_Point & p0, const MSVG_Point & p1, float width );
 
 };
 // *****************************************************************************
 // class Ellipse
 // A planar ellipse in 3D
 
-class Ellipse : public Polygon
+class MSVG_Ellipse : public MSVG_Polygon
 {
    public:
-   Ellipse( unsigned n, const Vector2r & center, const Vector2r & eje1, const Vector2r eje2  );
+   MSVG_Ellipse( unsigned n, const Eigen::Matrix<double,2,1> & center, const Eigen::Matrix<double,2,1> & eje1, const Eigen::Matrix<double,2,1> eje2  );
 };
 // *****************************************************************************
 // class Figure

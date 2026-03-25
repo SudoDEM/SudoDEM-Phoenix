@@ -34,16 +34,29 @@ void GLViewer::mouseMovesCamera(){
   //cout<<"mouse moves camera"<<endl;
 #if QGLVIEWER_VERSION>=0x020500
   setMouseBinding(Qt::ShiftModifier, Qt::LeftButton, SELECT);
-
   setMouseBinding(Qt::ShiftModifier, Qt::LeftButton, FRAME, ZOOM);
   setMouseBinding(Qt::ShiftModifier, Qt::RightButton, FRAME, ZOOM);
   setMouseBinding(Qt::ShiftModifier, Qt::MiddleButton, FRAME, TRANSLATE);
-  setMouseBinding(Qt::ShiftModifier, Qt::RightButton, FRAME, NO_MOUSE_ACTION);//ROTATE
+  setMouseBinding(Qt::ShiftModifier, Qt::RightButton, FRAME, ROTATE);
 
-  setMouseBinding(Qt::NoModifier, Qt::RightButton, CAMERA, ZOOM);
-  setMouseBinding(Qt::NoModifier, Qt::MiddleButton, CAMERA, ZOOM);
-  setMouseBinding(Qt::NoModifier, Qt::LeftButton, CAMERA, TRANSLATE);//ROTATE
-  setMouseBinding(Qt::NoModifier, Qt::RightButton, CAMERA, TRANSLATE);
+  #ifdef _WIN32
+	// ON WIN, default bindings are set prior to this function for NoModifier
+	// Left btn for rotate, right btn for translate and middle btn for zoom
+	// we have to reset this default bindings before customized bindings
+
+	clearMouseBindings();
+	
+	// setMouseBinding(Qt::NoModifier, Qt::RightButton, CAMERA, ZOOM);
+	setMouseBinding(Qt::NoModifier, Qt::MiddleButton, CAMERA, ZOOM);
+	setMouseBinding(Qt::NoModifier, Qt::LeftButton, CAMERA, ROTATE);
+	setMouseBinding(Qt::NoModifier, Qt::RightButton, CAMERA, TRANSLATE);
+  #else
+	setMouseBinding(Qt::NoModifier, Qt::RightButton, CAMERA, ZOOM);
+	setMouseBinding(Qt::NoModifier, Qt::MiddleButton, CAMERA, ZOOM);
+	setMouseBinding(Qt::NoModifier, Qt::LeftButton, CAMERA, ROTATE);
+	setMouseBinding(Qt::NoModifier, Qt::RightButton, CAMERA, TRANSLATE);
+  #endif
+  
 #else
   setMouseBinding(Qt::SHIFT + Qt::LeftButton, SELECT);
   setMouseBinding(Qt::SHIFT + Qt::LeftButton + Qt::RightButton, FRAME, ZOOM);

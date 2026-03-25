@@ -5,11 +5,11 @@
 *  GNU General Public License v2 or later. See file LICENSE for details. *
 *************************************************************************/
 
-#include"ElasticContactLaw.hpp"
-#include<sudodem/pkg/dem/ScGeom.hpp>
-#include<sudodem/pkg/dem/FrictPhys.hpp>
-#include<sudodem/core/Omega.hpp>
-#include<sudodem/core/Scene.hpp>
+#include <sudodem/pkg/dem/ElasticContactLaw.hpp>
+#include <sudodem/pkg/dem/ScGeom.hpp>
+#include <sudodem/pkg/dem/FrictPhys.hpp>
+#include <sudodem/core/Omega.hpp>
+#include <sudodem/core/Scene.hpp>
 
 
 #if 1

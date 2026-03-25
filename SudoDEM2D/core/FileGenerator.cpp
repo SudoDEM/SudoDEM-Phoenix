@@ -3,15 +3,15 @@
 *  GNU General Public License v2 or later. See file LICENSE for details. *
 *************************************************************************/
 
-#include<sudodem/core/Omega.hpp>
-#include<chrono>
-#include<ctime>
-#include<sstream>
-#include<iomanip>
-#include<sudodem/lib/pyutil/gil.hpp>
-#include<sudodem/lib/serialization/ObjectIO.hpp>
+#include <sudodem/core/Omega.hpp>
+#include <chrono>
+#include <ctime>
+#include <sstream>
+#include <iomanip>
+#include <sudodem/lib/pyutil/gil.hpp>
+#include <sudodem/lib/serialization/ObjectIO.hpp>
 
-#include"FileGenerator.hpp"
+#include <sudodem/core/FileGenerator.hpp>
 
 CREATE_LOGGER(FileGenerator);
 

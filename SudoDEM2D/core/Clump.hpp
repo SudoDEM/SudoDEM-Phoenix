@@ -103,8 +103,8 @@ class Clump: public Shape {
 	public:
 		Clump() { createIndex(); }
 
-		virtual void pyRegisterClass(pybind11::module_ _module) override;
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override;
 	DECLARE_LOGGER;
-	REGISTER_CLASS_INDEX(Clump,Shape);
+	REGISTER_CLASS_INDEX_H(Clump,Shape)
 };
 REGISTER_SERIALIZABLE_BASE(Clump, Shape);

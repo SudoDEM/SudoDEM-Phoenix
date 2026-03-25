@@ -29,8 +29,10 @@ class Ig2_Disk_Disk_ScGeom: public IGeomFunctor{
 		virtual bool goReverse(const shared_ptr<Shape>& cm1, const shared_ptr<Shape>& cm2, const State& state1, const State& state2, const Vector2r& shift2, const bool& force, const shared_ptr<Interaction>& c) override;
 
 		Ig2_Disk_Disk_ScGeom() : interactionDetectionFactor(1), avoidGranularRatcheting(true) {}
-		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		FUNCTOR2D(Disk,Disk);
+
+
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<Ig2_Disk_Disk_ScGeom, IGeomFunctor, std::shared_ptr<Ig2_Disk_Disk_ScGeom>> _classObj(_module, "Ig2_Disk_Disk_ScGeom", "Create/update a :yref:`ScGeom` instance representing the geometry of a contact point between two :yref:`Disks<Disk>` s.");
 			_classObj.def(pybind11::init<>());
 			_classObj.def_readwrite("interactionDetectionFactor", &Ig2_Disk_Disk_ScGeom::interactionDetectionFactor, "Enlarge both radii by this factor (if >1), to permit creation of distant interactions.\n\nInteractionGeometry will be computed when interactionDetectionFactor*(rad1+rad2) > distance.\n\n.. note::\n\t This parameter is functionally coupled with :yref:`Bo1_Disk_Aabb::aabbEnlargeFactor`, which will create larger bounding boxes and should be of the same value.");
@@ -74,8 +76,10 @@ class Ig2_Wall_Disk_ScGeom: public IGeomFunctor{
 		virtual bool go(const shared_ptr<Shape>& cm1, const shared_ptr<Shape>& cm2, const State& state1, const State& state2, const Vector2r& shift2, const bool& force, const shared_ptr<Interaction>& c) override;
 		
 		Ig2_Wall_Disk_ScGeom() : noRatch(true) {}
+
+		FUNCTOR2D(Wall,Disk);
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<Ig2_Wall_Disk_ScGeom, IGeomFunctor, std::shared_ptr<Ig2_Wall_Disk_ScGeom>> _classObj(_module, "Ig2_Wall_Disk_ScGeom", "Create/update a :yref:`ScGeom` instance representing intersection of :yref:`Wall` and :yref:`Disk`.");
 			_classObj.def(pybind11::init<>());
 			_classObj.def_readwrite("noRatch", &Ig2_Wall_Disk_ScGeom::noRatch, "Avoid granular ratcheting");
@@ -93,8 +97,7 @@ class Ig2_Fwall_Disk_ScGeom : public IGeomFunctor
 					const shared_ptr<Interaction>& c) override;
 		
 		Ig2_Fwall_Disk_ScGeom() {}
-		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<Ig2_Fwall_Disk_ScGeom, IGeomFunctor, std::shared_ptr<Ig2_Fwall_Disk_ScGeom>> _classObj(_module, "Ig2_Fwall_Disk_ScGeom", "Create/update a :yref:`ScGeom` instance representing intersection of :yref:`Fwall` and :yref:`Disk`.");
 			_classObj.def(pybind11::init<>());
 		}

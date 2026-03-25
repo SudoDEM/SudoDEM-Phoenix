@@ -3,7 +3,7 @@
 
 #ifdef SUDODEM_OPENGL
 
-#include"OpenGLRenderer.hpp"
+#include<sudodem/pkg/common/OpenGLRenderer.hpp>
 #include<sudodem/lib/opengl/OpenGLWrapper.hpp>
 #include<sudodem/lib/opengl/GLUtils.hpp>
 #include<sudodem/core/Timing.hpp>
@@ -77,20 +77,24 @@ void OpenGLRenderer::init(){
 		}
 	}
 	
-	// std::cerr << "DEBUG: shapeFunctorNames has " << shapeFunctorNames.size() << " functors" << std::endl;
-	// std::cerr << "DEBUG: About to call initgl()..." << std::endl;
-	initgl(); // creates functor objects in the proper sense
-	// std::cerr << "DEBUG: initgl() completed" << std::endl;
-
-	//clipPlaneNormals.resize(numClipPlanes);
+	#ifdef __APPLE__
+		initgl();
+	#endif
 
 	static bool glutInitDone=false;
 	if(!glutInitDone){
 #if QT_VERSION_MAJOR >= 6
-		// When using Qt6, GLUT initialization is not needed and causes conflicts
-		// Qt6's QOpenGLWidget provides all necessary OpenGL functionality
-		// Skip GLUT initialization to avoid "glutInit being called a second time" error
-		std::cerr << "DEBUG: Skipping GLUT initialization (Qt6 provides OpenGL context)" << std::endl;
+		#if defined(_WIN32) || defined(__linux__)
+			int fakeArgc = 1;
+			char appName[] = "app";
+			char* fakeArgv[] = { appName, nullptr };
+
+			glutInit(&fakeArgc, fakeArgv);
+
+			//glutInit(&Omega::instance().origArgc,Omega::instance().origArgv);
+		#else
+			std::cerr << "DEBUG: Skipping GLUT initialization (Qt6 provides OpenGL context, except win os)" << std::endl;
+		#endif
 #else
 		glutInit(&Omega::instance().origArgc,Omega::instance().origArgv);
 		/* transparent disks (still not working): glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH | GLUT_MULTISAMPLE | GLUT_ALPHA); glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE); */
@@ -100,6 +104,11 @@ void OpenGLRenderer::init(){
 
 	// std::cerr << "DEBUG: Setting initDone=true" << std::endl;
 	initDone=true;
+
+	#if defined(_WIN32) || defined(__linux__)
+		 initgl();
+	#endif
+
 	// std::cerr << "DEBUG: OpenGLRenderer::init() completed successfully" << std::endl;
 	// glGetError crashes at some machines?! Was never really useful, anyway.
 	// reported http://www.mail-archive.com/sudodem-users@lists.launchpad.net/msg01482.html
@@ -124,7 +133,7 @@ void OpenGLRenderer::initgl(){
 		static shared_ptr<Functor> create(const std::string& className) {
 			shared_ptr<Factorable> obj = ClassRegistry::instance().create(className);
 			if (!obj) return shared_ptr<Functor>();
-			return dynamic_pointer_cast<Functor>(obj);
+			return std::dynamic_pointer_cast<Functor>(obj);
 		}
 	};
 	
@@ -133,7 +142,7 @@ void OpenGLRenderer::initgl(){
 	for(string& s : shapeFunctorNames) {
 		shared_ptr<Functor> f = FunctorCreator::create(s);
 		if (f) {
-			shared_ptr<GlShapeFunctor> typedF = dynamic_pointer_cast<GlShapeFunctor>(f);
+			shared_ptr<GlShapeFunctor> typedF = std::dynamic_pointer_cast<GlShapeFunctor>(f);
 			if (typedF) { typedF->initgl(); shapeDispatcher.add(typedF); }
 		}
 	}
@@ -143,7 +152,7 @@ void OpenGLRenderer::initgl(){
 	for(string& s : boundFunctorNames) {
 		shared_ptr<Functor> f = FunctorCreator::create(s);
 		if (f) {
-			shared_ptr<GlBoundFunctor> typedF = dynamic_pointer_cast<GlBoundFunctor>(f);
+			shared_ptr<GlBoundFunctor> typedF = std::dynamic_pointer_cast<GlBoundFunctor>(f);
 			if (typedF) { typedF->initgl(); boundDispatcher.add(typedF); }
 		}
 	}
@@ -152,7 +161,7 @@ void OpenGLRenderer::initgl(){
 	for(string& s : geomFunctorNames) {
 		shared_ptr<Functor> f = FunctorCreator::create(s);
 		if (f) {
-			shared_ptr<GlIGeomFunctor> typedF = dynamic_pointer_cast<GlIGeomFunctor>(f);
+			shared_ptr<GlIGeomFunctor> typedF = std::dynamic_pointer_cast<GlIGeomFunctor>(f);
 			if (typedF) { typedF->initgl(); geomDispatcher.add(typedF); }
 		}
 	}
@@ -161,7 +170,7 @@ void OpenGLRenderer::initgl(){
 	for(string& s : physFunctorNames) {
 		shared_ptr<Functor> f = FunctorCreator::create(s);
 		if (f) {
-			shared_ptr<GlIPhysFunctor> typedF = dynamic_pointer_cast<GlIPhysFunctor>(f);
+			shared_ptr<GlIPhysFunctor> typedF = std::dynamic_pointer_cast<GlIPhysFunctor>(f);
 			if (typedF) { typedF->initgl(); physDispatcher.add(typedF); }
 		}
 	}
@@ -408,7 +417,7 @@ void OpenGLRenderer::renderBound(){
 
 	for(const shared_ptr<Body>& b : *scene->bodies){
 		if(!b || !b->bound) continue;
-		if(!bodyDisp[b->getId()].isDisplayed or bodyDisp[b->getId()].hidden) continue;
+		if(!bodyDisp[b->getId()].isDisplayed || bodyDisp[b->getId()].hidden) continue;
 		if(b->bound && ((b->getGroupMask()&mask) || b->getGroupMask()==0)){
 			glPushMatrix(); boundDispatcher(b->bound,scene.get()); glPopMatrix();
 		}
@@ -444,7 +453,7 @@ void OpenGLRenderer::renderShape(){
 	for(shared_ptr<Body> b : *scene->bodies){
 		//cout<<"here1"<<endl;
 		if(!b || !b->shape) continue;
-		if(!(bodyDisp[b->getId()].isDisplayed and !bodyDisp[b->getId()].hidden)) continue;
+		if(!(bodyDisp[b->getId()].isDisplayed && !bodyDisp[b->getId()].hidden)) continue;
 		
 		// Lock State during rendering to prevent race conditions with simulation thread
 		if(b->state) {

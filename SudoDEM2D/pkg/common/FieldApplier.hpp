@@ -10,7 +10,7 @@ class FieldApplier: public GlobalEngine{
 public:
 	int fieldWorkIx;
 	
-	virtual void pyRegisterClass(pybind11::module_ _module) override {
+	SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 		pybind11::class_<FieldApplier, GlobalEngine, std::shared_ptr<FieldApplier>> _classObj(_module, "FieldApplier", "Base for engines applying force files on particles. Not to be used directly.");
 		_classObj.def(pybind11::init<>());
 		_classObj.def_readwrite("fieldWorkIx", &FieldApplier::fieldWorkIx, "Index for the work done by this field, if tracking energies.");

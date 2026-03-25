@@ -10,17 +10,14 @@
 *  This program is free software; it is licensed under the terms of the  *
 *  GNU General Public License v2 or later. See file LICENSE for details. *
 *************************************************************************/
-#include<sudodem/lib/base/Math.hpp>
-#include"Ig2_Basic_ScGeom.hpp"
-#include<sudodem/pkg/dem/ScGeom.hpp>
-#include<sudodem/pkg/common/Disk.hpp>
-//#include<sudodem/pkg/common/Box.hpp>
-//#include<sudodem/pkg/common/Facet.hpp>
-#include<sudodem/pkg/common/Wall.hpp>
-#include<sudodem/core/Scene.hpp>
-
-#include<sudodem/core/Omega.hpp>
-#include<sudodem/pkg/common/InteractionLoop.hpp>
+#include <sudodem/lib/base/Math.hpp>
+#include <sudodem/pkg/dem/Ig2_Basic_ScGeom.hpp>
+#include <sudodem/pkg/dem/ScGeom.hpp>
+#include <sudodem/pkg/common/Disk.hpp>
+#include <sudodem/pkg/common/Wall.hpp>
+#include <sudodem/core/Scene.hpp>
+#include <sudodem/core/Omega.hpp>
+#include <sudodem/pkg/common/InteractionLoop.hpp>
 
 CREATE_LOGGER(Ig2_Fwall_Disk_ScGeom);
 

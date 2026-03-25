@@ -1,7 +1,7 @@
-// 2009 © Václav Šmilauer <eudoxos@arcig.cz>
+// 2009 © Vaclav Smilauer <eudoxos@arcig.cz>
 #pragma once
-#include<Python.h>
-#include<string>
+#include <Python.h>
+#include <string>
 //! class (scoped lock) managing python's Global Interpreter Lock (gil)
 class gilLock{
 	PyGILState_STATE state;

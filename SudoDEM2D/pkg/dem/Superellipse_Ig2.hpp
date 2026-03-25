@@ -1,4 +1,4 @@
-#include"Superellipse.hpp"
+#include <sudodem/pkg/dem/Superellipse.hpp>
 //#include<sudodem/pkg/common/Sphere.hpp>
 //#include<sudodem/pkg/common/Box.hpp>
 
@@ -14,7 +14,7 @@ class Ig2_Superellipse_Superellipse_SuperellipseGeom: public IGeomFunctor
 		
 		Ig2_Superellipse_Superellipse_SuperellipseGeom() {}
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<Ig2_Superellipse_Superellipse_SuperellipseGeom, IGeomFunctor, std::shared_ptr<Ig2_Superellipse_Superellipse_SuperellipseGeom>> _classObj(_module, "Ig2_Superellipse_Superellipse_SuperellipseGeom", "Create/update geometry of collision between 2 Superellipses");
 			_classObj.def(pybind11::init<>());
 		}
@@ -35,7 +35,7 @@ class Ig2_Wall_Superellipse_SuperellipseGeom: public IGeomFunctor
 		
 		Ig2_Wall_Superellipse_SuperellipseGeom() {}
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<Ig2_Wall_Superellipse_SuperellipseGeom, IGeomFunctor, std::shared_ptr<Ig2_Wall_Superellipse_SuperellipseGeom>> _classObj(_module, "Ig2_Wall_Superellipse_SuperellipseGeom", "Create/update geometry of collision between Wall and Superellipse");
 			_classObj.def(pybind11::init<>());
 		}
@@ -56,7 +56,7 @@ class Ig2_Fwall_Superellipse_SuperellipseGeom : public IGeomFunctor
 		
 		Ig2_Fwall_Superellipse_SuperellipseGeom() {}
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<Ig2_Fwall_Superellipse_SuperellipseGeom, IGeomFunctor, std::shared_ptr<Ig2_Fwall_Superellipse_SuperellipseGeom>> _classObj(_module, "Ig2_Fwall_Superellipse_SuperellipseGeom", "Create/update a :yref:`ScGeom` instance representing intersection of :yref:`Fwall` and :yref:`Disk`.");
 			_classObj.def(pybind11::init<>());
 		}

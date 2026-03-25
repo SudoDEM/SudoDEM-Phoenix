@@ -8,15 +8,16 @@
 *  GNU General Public License v2 or later. See file LICENSE for details. *
 *************************************************************************/
 #pragma once
-#include<sudodem/lib/base/Math.hpp>//zhswee, fix _POXIC_C_SOURCE warning
-#include"Shape.hpp"
-#include"Bound.hpp"
-#include"State.hpp"
-#include"Material.hpp"
+
+#include <sudodem/lib/base/Math.hpp>//zhswee, fix _POXIC_C_SOURCE warning
+#include <sudodem/core/Shape.hpp>
+#include <sudodem/core/Bound.hpp>
+#include <sudodem/core/State.hpp>
+#include <sudodem/core/Material.hpp>
 
 //#include<sudodem/lib/base/Math.hpp>
-#include<sudodem/lib/serialization/Serializable.hpp>
-#include<sudodem/lib/multimethods/Indexable.hpp>
+#include <sudodem/lib/serialization/Serializable.hpp>
+#include <sudodem/lib/multimethods/Indexable.hpp>
 
 
 
@@ -35,7 +36,7 @@ class Body: public Serializable{
 		// bits for Body::flags
 		enum { FLAG_BOUNDED=1, FLAG_ASPHERICAL=2 }; /* add powers of 2 as needed */
 		//! symbolic constant for body that doesn't exist.
-		static const Body::id_t ID_NONE;
+		inline static constexpr id_t ID_NONE = -1;
 		//! get Body pointer given its id.
 		static const shared_ptr<Body>& byId(Body::id_t _id,Scene* rb=NULL);
 		static const shared_ptr<Body>& byId(Body::id_t _id,shared_ptr<Scene> rb);
@@ -126,6 +127,6 @@ class Body: public Serializable{
 #endif
 		}
 
-		virtual void pyRegisterClass(pybind11::module_ _module) override;
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override;
 };
 REGISTER_SERIALIZABLE(Body);

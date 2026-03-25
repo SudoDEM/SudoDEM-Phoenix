@@ -204,7 +204,7 @@ class InsertionSortCollider: public Collider{
 	// Use REGISTER_ATTRIBUTES for serialization
 	REGISTER_ATTRIBUTES(Collider, sortAxis, allowBiggerThanPeriod, sortThenCollide, targetInterv, updatingDispFactor, verletDist, minSweepDistFactor, fastestBodyMaxDist, numReinit, doSort);
 	
-	virtual void pyRegisterClass(pybind11::module_ _module) override {
+	SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 		pybind11::class_<InsertionSortCollider, Collider, std::shared_ptr<InsertionSortCollider>> _classObj(_module, "InsertionSortCollider", 
 			"Collider with O(n log(n)) complexity, using :yref:`Aabb` for bounds.\n\n"
 			"At the initial step, Bodies' bounds (along :yref:`sortAxis<InsertionSortCollider.sortAxis>`) are first std::sort'ed along this (sortAxis) axis, then collided. The initial sort has :math:`O(n^2)` complexity, see `Colliders' performance <https://sudodem-dem.org/index.php/Colliders_performace>`_ for some information (There are scripts in examples/collider-perf for measurements). \n\n"

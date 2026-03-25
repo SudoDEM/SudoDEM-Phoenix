@@ -5,7 +5,26 @@
 #include <sudodem/lib/base/Math.hpp>
 
 #include <cstdlib>
-#include <unistd.h>
+
+
+#ifdef _MSC_VER
+	#include <malloc.h>
+	#define SUDODEM_CACHE_LINE_SIZE 64
+	
+	static inline int sudodem_posix_memalign(void** ptr, size_t alignment, size_t size) {
+		*ptr = _aligned_malloc(size, alignment);
+		return (*ptr) ? 0 : errno;
+	}
+	#define sudodem_aligned_free(p) _aligned_free(p)
+#else
+	#include <unistd.h>
+	#define SUDODEM_CACHE_LINE_SIZE (sysconf(_SC_LEVEL1_DCACHE_LINESIZE) > 0 ? sysconf(_SC_LEVEL1_DCACHE_LINESIZE) : 64)
+  	static inline int sudodem_posix_memalign(void** ptr, size_t alignment, size_t size) {
+    	return posix_memalign(ptr, alignment, size);
+  	}
+  	#define sudodem_aligned_free(p) free(p)
+#endif
+
 
 #ifdef SUDODEM_OPENMP
 #include "omp.h"
@@ -27,8 +46,8 @@ class OpenMPArrayAccumulator{
 	size_t nCL; // current number of allocated cache lines
 	int nCL_for_N(size_t n){ return n/perCL+(n%perCL==0 ? 0 : 1); } // return number of cache lines to allocate for given number of elements
 	public:
-		OpenMPArrayAccumulator()        : CLS(sysconf(_SC_LEVEL1_DCACHE_LINESIZE)>0 ? sysconf(_SC_LEVEL1_DCACHE_LINESIZE) : 64), nThreads(omp_get_max_threads()), perCL(CLS/sizeof(T)), chunks(nThreads,NULL), sz(0), nCL(0) { }
-		OpenMPArrayAccumulator(size_t n): CLS(sysconf(_SC_LEVEL1_DCACHE_LINESIZE)>0 ? sysconf(_SC_LEVEL1_DCACHE_LINESIZE) : 64), nThreads(omp_get_max_threads()), perCL(CLS/sizeof(T)), chunks(nThreads,NULL), sz(0), nCL(0) { resize(n); }
+		OpenMPArrayAccumulator()        : CLS(SUDODEM_CACHE_LINE_SIZE), nThreads(omp_get_max_threads()), perCL(CLS/sizeof(T)), chunks(nThreads,NULL), sz(0), nCL(0) { }
+		OpenMPArrayAccumulator(size_t n): CLS(SUDODEM_CACHE_LINE_SIZE), nThreads(omp_get_max_threads()), perCL(CLS/sizeof(T)), chunks(nThreads,NULL), sz(0), nCL(0) { resize(n); }
 		// change number of elements
 		void resize(size_t n){
 			if(n==sz) return; // nothing to do
@@ -36,11 +55,11 @@ class OpenMPArrayAccumulator{
 			if(nCL_new>nCL){
 				for(size_t th=0; th<nThreads; th++){
 					void* oldChunk=(void*)chunks[th];
-					int succ=posix_memalign((void**)(&chunks[th]),/*alignment*/CLS,/*size*/ nCL_new*CLS);
+					int succ=sudodem_posix_memalign((void**)(&chunks[th]),/*alignment*/CLS,/*size*/ nCL_new*CLS);
 					if(succ!=0) throw std::runtime_error("OpenMPArrayAccumulator: posix_memalign failed to allocate memory.");
 					if(oldChunk){ // initialized to NULL initially, that must not be copied and freed
 						memcpy(/*dest*/(void*)chunks[th],/*src*/oldChunk,nCL*CLS); // preserve old data
-						free(oldChunk); // deallocate old storage
+						sudodem_aligned_free(oldChunk); // deallocate old storage
 					}
 					nCL=nCL_new;
 				}
@@ -91,12 +110,12 @@ class OpenMPAccumulator{
 		char* data; // use void* rather than T*, since with T* the pointer arithmetics has sizeof(T) as unit, which is confusing; char* takes one byte
 	public:
 	// initialize storage with _zeroValue, depending on number of threads
-	OpenMPAccumulator(): CLS(sysconf(_SC_LEVEL1_DCACHE_LINESIZE)>0 ? sysconf(_SC_LEVEL1_DCACHE_LINESIZE) : 64), nThreads(omp_get_max_threads()), eSize(CLS*(sizeof(T)/CLS+(sizeof(T)%CLS==0 ? 0 :1))) {
-		int succ=posix_memalign(/*where allocated*/(void**)&data,/*alignment*/CLS,/*size*/ nThreads*eSize);
+	OpenMPAccumulator(): CLS(SUDODEM_CACHE_LINE_SIZE), nThreads(omp_get_max_threads()), eSize(CLS*(sizeof(T)/CLS+(sizeof(T)%CLS==0 ? 0 :1))) {
+		int succ=sudodem_posix_memalign(/*where allocated*/(void**)&data,/*alignment*/CLS,/*size*/ nThreads*eSize);
 		if(succ!=0) throw std::runtime_error("OpenMPAccumulator: posix_memalign failed to allocate memory.");
 		reset();
 	}
-	~OpenMPAccumulator() { free((void*)data); }
+	~OpenMPAccumulator() { sudodem_aligned_free((void*)data); }
 	// lock-free addition
 	void operator+=(const T& val){ *((T*)(data+omp_get_thread_num()*eSize))+=val; }
 	void operator-=(const T& val){ *((T*)(data+omp_get_thread_num()*eSize))-=val; }

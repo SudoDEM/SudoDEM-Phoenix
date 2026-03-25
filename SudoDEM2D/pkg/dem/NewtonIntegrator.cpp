@@ -5,10 +5,15 @@
 *  This program is free software; it is licensed under the terms of the  *
 *  GNU General Public License v2 or later. See file LICENSE for details. *
 *************************************************************************/
-#include<sudodem/lib/base/Math.hpp>
-#include<sudodem/pkg/dem/NewtonIntegrator.hpp>
-#include<sudodem/core/Scene.hpp>
-#include<sudodem/core/Clump.hpp>
+#include <pybind11/pybind11.h>
+#include <pybind11/eigen.h>
+#include <pybind11/stl.h>
+
+#include <sudodem/lib/base/Math.hpp>
+#include <sudodem/pkg/dem/NewtonIntegrator.hpp>
+#include <sudodem/core/Scene.hpp>
+#include <sudodem/core/Clump.hpp>
+
 //#include<sudodem/lib/base/Math.hpp>
 
 
@@ -269,7 +274,7 @@ void NewtonIntegrator::leapfrogTranslate(State* state, const Body::id_t& id, con
 		//Reflect mean-field (periodic cell) acceleration in the velocity
 	if(scene->isPeriodic && homoDeform) {Vector2r dVel=dVelGrad*state->pos; state->vel+=dVel;}
 
-	if ( (mask<=0) or ((mask>0) and (Body::byId(id)->maskCompatible(mask))) ) {
+	if ( (mask<=0) || ((mask>0) && (Body::byId(id)->maskCompatible(mask))) ) {
 		state->pos+=state->vel*dt;
 	}
 }
@@ -277,7 +282,7 @@ void NewtonIntegrator::leapfrogTranslate(State* state, const Body::id_t& id, con
 void NewtonIntegrator::leapfrogSphericalRotate(State* state, const Body::id_t& id, const Real& dt )
 {
 	Real angle=state->angVel;
-	if (angle!=0 and ( (mask<=0) or ((mask>0) and (Body::byId(id)->maskCompatible(mask))) )) {//If we have an angular velocity, we make a rotation
+	if (angle!=0 && ( (mask<=0) || ((mask>0) && (Body::byId(id)->maskCompatible(mask))) )) {//If we have an angular velocity, we make a rotation
 		//Real angle=sqrt(angle2);
 		//Quaternionr q(AngleAxisr(angle*dt,state->angVel/angle));
     Rotationr rot(angle*dt);
@@ -298,7 +303,7 @@ void NewtonIntegrator::leapfrogSuperellipseRotate(Superellipse* shape,State* sta
 
     //Matrix2r A = shape->rot_mat2local;
 		Real angle=state->angVel;
-		if (angle!=0 and ( (mask<=0) or ((mask>0) and (Body::byId(id)->maskCompatible(mask))) )) {//If we have an angular velocity, we make a rotation
+		if (angle!=0 && ( (mask<=0) || ((mask>0) && (Body::byId(id)->maskCompatible(mask))) )) {//If we have an angular velocity, we make a rotation
 			//Real angle=sqrt(angle2);
 			//Quaternionr q(AngleAxisr(angle*dt,state->angVel/angle));
 	    Rotationr rot(angle*dt);
@@ -335,4 +340,39 @@ void NewtonIntegrator::set_densityScaling(bool dsc) {
 
 */
 densityScaling=dsc;//not used
+}
+
+
+void NewtonIntegrator::pyRegisterClass(pybind11::module_ _module)
+{
+	pybind11::class_<NewtonIntegrator, FieldApplier, std::shared_ptr<NewtonIntegrator>> _classObj(_module, "NewtonIntegrator", "Engine integrating newtonian motion equations.");
+	_classObj.def(pybind11::init<>());
+
+	_classObj.def(pybind11::init([](Real damping, Vector2r gravityin, std::string label, bool issuperin) {
+		auto n = std::make_shared<NewtonIntegrator>();
+		n->damping = damping;
+		n->gravity = gravityin;
+		n->label = label;
+		n->isSuperellipse = issuperin;
+		return n;
+	}), pybind11::arg("damping") = 0.0, pybind11::arg("gravity") = Vector2r::Zero(),
+	    pybind11::arg("label") = "newton", pybind11::arg("isSuperellipse") = true);
+	
+
+	_classObj.def_readwrite("damping", &NewtonIntegrator::damping, "damping coefficient for Cundall's non viscous damping (see [Chareyre2005]_) [-]");
+	_classObj.def_readwrite("isSuperellipse", &NewtonIntegrator::isSuperellipse, "Enable optimation for Superellipse");
+	_classObj.def_readwrite("quiet_system_flag", &NewtonIntegrator::quiet_system_flag, "the flag for quiet system");
+	_classObj.def_readwrite("gravity", &NewtonIntegrator::gravity, "Gravitational acceleration (effectively replaces GravityEngine).");
+	_classObj.def_readwrite("maxVelocitySq", &NewtonIntegrator::maxVelocitySq, "store square of max. velocity, for informative purposes; computed again at every step. |yupdate|");
+	_classObj.def_readwrite("exactAsphericalRot", &NewtonIntegrator::exactAsphericalRot, "Enable more exact body rotation integrator for :yref:`aspherical bodies<Body.aspherical>` *only*, using formulation from [Allen1989]_, pg. 89.");
+	_classObj.def_readwrite("prevVelGrad", &NewtonIntegrator::prevVelGrad, "Store previous velocity gradient (:yref:`Cell::velGrad`) to track acceleration. |yupdate|");
+	_classObj.def_readwrite("prevCellSize", &NewtonIntegrator::prevCellSize, "cell size from previous step, used to detect change and find max velocity");
+	_classObj.def_readwrite("warnNoForceReset", &NewtonIntegrator::warnNoForceReset, "Warn when forces were not resetted in this step by :yref:`ForceResetter`; this mostly points to :yref:`ForceResetter` being forgotten incidentally and should be disabled only with a good reason.");
+	_classObj.def_readwrite("nonviscDampIx", &NewtonIntegrator::nonviscDampIx, "Index of the energy dissipated using the non-viscous damping (:yref:`damping<NewtonIntegrator.damping>`).");
+	_classObj.def_readwrite("kinSplit", &NewtonIntegrator::kinSplit, "Whether to separately track translational and rotational kinetic energy.");
+	_classObj.def_readwrite("kinEnergyIx", &NewtonIntegrator::kinEnergyIx, "Index for kinetic energy in scene->energies.");
+	_classObj.def_readwrite("kinEnergyTransIx", &NewtonIntegrator::kinEnergyTransIx, "Index for translational kinetic energy in scene->energies.");
+	_classObj.def_readwrite("kinEnergyRotIx", &NewtonIntegrator::kinEnergyRotIx, "Index for rotational kinetic energy in scene->energies.");
+	_classObj.def_readwrite("mask", &NewtonIntegrator::mask, "If mask defined and the bitwise AND between mask and body`s groupMask gives 0, the body will not move/rotate. Velocities and accelerations will be calculated not paying attention to this parameter.");
+	_classObj.def_property("densityScaling", &NewtonIntegrator::get_densityScaling, &NewtonIntegrator::set_densityScaling, "if True, then density scaling [Pfc3dManual30]_ will be applied in order to have a critical timestep equal to :yref:`GlobalStiffnessTimeStepper::targetDt` for all bodies. This option makes the simulation unrealistic from a dynamic point of view, but may speedup quasistatic simulations. In rare situations, it could be useful to not set the scalling factor automatically for each body (which the time-stepper does). In such case revert :yref:`GlobalStiffnessTimeStepper.densityScaling` to False.");
 }

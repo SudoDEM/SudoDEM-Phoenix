@@ -43,7 +43,7 @@ class InteractionLoop: public GlobalEngine {
 		// Use REGISTER_ATTRIBUTES for serialization
 		REGISTER_ATTRIBUTES(GlobalEngine, geomDispatcher, physDispatcher, lawDispatcher, callbacks, eraseIntsInLoop);
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<InteractionLoop, GlobalEngine, std::shared_ptr<InteractionLoop>> _classObj(_module, "InteractionLoop", "Unified dispatcher for handling interaction loop at every step, for parallel performance reasons.\n\n.. admonition:: Special constructor\n\n\tConstructs from 3 lists of :yref:`Ig2<IGeomFunctor>`, :yref:`Ip2<IPhysFunctor>`, :yref:`Law<LawFunctor>` functors respectively; they will be passed to interal dispatchers, which you might retrieve.");
 			// Default constructor
 			_classObj.def(pybind11::init<>());

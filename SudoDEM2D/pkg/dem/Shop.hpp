@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "sudodem/lib/base/Math.hpp"
-#include "sudodem/lib/base/Logging.hpp"
-#include "sudodem/core/Body.hpp"
+#include <sudodem/lib/base/Math.hpp>
+#include <sudodem/lib/base/Logging.hpp>
+#include <sudodem/core/Body.hpp>
 #include <pybind11/pybind11.h>
 
 
@@ -142,6 +142,6 @@ class Shop{
 		static Real periodicWrap(Real x, Real x0, Real x1, long* period=NULL);
 		//! Get unbalanced force of the whole simulation
 		static Real unbalancedForce(bool useMaxForce=false, Scene* _rb=NULL);
-		static py::tuple getStressAndTangent2D(Real z_dim = 1, bool symmetry=true);
-		static py::tuple getStressTangentThermal2D(Real z_dim = 1, bool symmetry=true);
+		SUDODEM_PYREGISTER_CLASS_API static py::tuple getStressAndTangent2D(Real z_dim = 1, bool symmetry=true);
+		SUDODEM_PYREGISTER_CLASS_API static py::tuple getStressTangentThermal2D(Real z_dim = 1, bool symmetry=true);
 };

@@ -9,10 +9,10 @@
 #pragma once
 
 
-#include<sudodem/lib/serialization/Serializable.hpp>
+#include <sudodem/lib/serialization/Serializable.hpp>
 
-#include<sudodem/lib/multimethods/loki/Typelist.h>
-#include<sudodem/lib/multimethods/loki/Functor.h>
+#include <sudodem/lib/multimethods/loki/Typelist.h>
+#include <sudodem/lib/multimethods/loki/Functor.h>
 // compat with former sudodem's local Loki
 #define TYPELIST_1 LOKI_TYPELIST_1
 #define TYPELIST_2 LOKI_TYPELIST_2

@@ -13,19 +13,14 @@ struct TimingInfo{
 	static delta getNow(bool evenIfDisabled=false)
 	{
 		if(!enabled && !evenIfDisabled) return 0L;
-#ifdef __APPLE__
-		// Use std::chrono for macOS support
+
+		//CH_BUG_FIX
 		auto now = std::chrono::steady_clock::now();
 		auto duration = now.time_since_epoch();
 		auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(duration);
 		return static_cast<delta>(nanoseconds.count());
-#else
-		struct timespec ts; 
-		clock_gettime(CLOCK_MONOTONIC,&ts); 
-		return delta(1e9*ts.tv_sec+ts.tv_nsec);		
-#endif
 	}
-	static bool enabled;
+	inline static bool enabled = false;
 };
 
 /* Create TimingDeltas object, then every call to checkpoint() will add

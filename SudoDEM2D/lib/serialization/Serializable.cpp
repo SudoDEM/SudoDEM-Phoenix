@@ -8,7 +8,7 @@
 *  GNU General Public License v2 or later. See file LICENSE for details. *
 *************************************************************************/
 
-#include "Serializable.hpp"
+#include <sudodem/lib/serialization/Serializable.hpp>
 
 
 void Serializable::pyRegisterClass(pybind11::module_ _module) {

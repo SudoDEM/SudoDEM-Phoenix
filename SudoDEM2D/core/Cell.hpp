@@ -156,6 +156,6 @@ class Cell: public Serializable{
 		ar(CEREAL_NVP(velGradChanged));
 	}
 
-	virtual void pyRegisterClass(pybind11::module_ _module) override;
+	SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override;
 };
 REGISTER_SERIALIZABLE(Cell);

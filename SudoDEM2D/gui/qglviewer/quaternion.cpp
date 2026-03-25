@@ -222,7 +222,7 @@ Vec Quaternion::axis() const
 	const qreal sinus = res.norm();
 	if (sinus > 1E-8)
 		res /= sinus;
-	return (acos(q[3]) <= M_PI/2.0) ? res : -res;
+	return (acos(q[3]) <= M_PI_2) ? res : -res;
 }
 
 /*! Returns the angle (in radians) of the rotation represented by the Quaternion.
@@ -234,7 +234,7 @@ Vec Quaternion::axis() const
 qreal Quaternion::angle() const
 {
 	const qreal angle = 2.0 * acos(q[3]);
-	return (angle <= M_PI) ? angle : 2.0*M_PI - angle;
+	return (angle <= M_PI) ? angle : M_PI*2.0 - angle;
 }
 
 /*! Returns an XML \c QDomElement that represents the Quaternion.
@@ -546,7 +546,7 @@ Quaternion Quaternion::randomQuaternion()
 	qreal seed = rand()/(qreal)RAND_MAX;
 	qreal r1 = sqrt(1.0 - seed);
 	qreal r2 = sqrt(seed);
-	qreal t1 = 2.0 * M_PI * (rand()/(qreal)RAND_MAX);
-	qreal t2 = 2.0 * M_PI * (rand()/(qreal)RAND_MAX);
+	qreal t1 = M_PI*2.0 * (rand()/(qreal)RAND_MAX);
+	qreal t2 = M_PI*2.0 * (rand()/(qreal)RAND_MAX);
 	return Quaternion(sin(t1)*r1, cos(t1)*r1, sin(t2)*r2, cos(t2)*r2);
 }

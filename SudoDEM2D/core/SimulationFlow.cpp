@@ -5,11 +5,11 @@
 *  This program is free software; it is licensed under the terms of the  *
 *  GNU General Public License v2 or later. See file LICENSE for details. *
 *************************************************************************/
-#include "Scene.hpp"
+#include <sudodem/core/Scene.hpp>
 #include <sudodem/lib/base/Logging.hpp>
-#include "SimulationFlow.hpp"
+#include <sudodem/core/SimulationFlow.hpp>
 //#include "Scene.hpp"
-#include "Omega.hpp"
+#include <sudodem/core/Omega.hpp>
 
 CREATE_LOGGER(SimulationFlow);
 

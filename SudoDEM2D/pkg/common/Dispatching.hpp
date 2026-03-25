@@ -1,16 +1,16 @@
 #pragma once
-#include<sudodem/lib/base/Math.hpp>
-#include<sudodem/core/Shape.hpp>
-#include<sudodem/core/Interaction.hpp>
-#include<sudodem/core/Scene.hpp>
-#include<sudodem/core/State.hpp>
-#include<sudodem/core/Shape.hpp>
-#include<sudodem/core/IGeom.hpp>
-#include<sudodem/core/IPhys.hpp>
-#include<sudodem/core/Functor.hpp>
-#include<sudodem/core/Dispatcher.hpp>
-#include<sudodem/pkg/common/Aabb.hpp>
-#include<pybind11/pybind11.h>
+#include <sudodem/lib/base/Math.hpp>
+#include <sudodem/core/Shape.hpp>
+#include <sudodem/core/Interaction.hpp>
+#include <sudodem/core/Scene.hpp>
+#include <sudodem/core/State.hpp>
+#include <sudodem/core/Shape.hpp>
+#include <sudodem/core/IGeom.hpp>
+#include <sudodem/core/IPhys.hpp>
+#include <sudodem/core/Functor.hpp>
+#include <sudodem/core/Dispatcher.hpp>
+#include <sudodem/pkg/common/Aabb.hpp>
+#include <pybind11/pybind11.h>
 
 /********
 	functors
@@ -22,7 +22,7 @@ class BoundFunctor: public Functor1D<
 	/*argument types*/ TYPELIST_4(const shared_ptr<Shape>&, shared_ptr<Bound>&, const Se2r&, const Body*)
 >{
 	public: virtual ~BoundFunctor();
-	public: virtual void pyRegisterClass(pybind11::module_ _module) override {
+	public: SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 		checkPyClassRegistersItself("BoundFunctor");
 		pybind11::class_<BoundFunctor, Functor1D<Shape,void,TYPELIST_4(const shared_ptr<Shape>&, shared_ptr<Bound>&, const Se2r&, const Body*)>, std::shared_ptr<BoundFunctor>> _classObj(_module, "BoundFunctor", "Functor for creating/updating :yref:`Body::bound`.");
 		_classObj.def(pybind11::init<>());
@@ -38,7 +38,7 @@ class IGeomFunctor: public Functor2D<
 >{
 	public: virtual ~IGeomFunctor();
 	virtual void preStep(){};
-	public: virtual void pyRegisterClass(pybind11::module_ _module) override {
+	public: SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 		checkPyClassRegistersItself("IGeomFunctor");
 		pybind11::class_<IGeomFunctor, Functor2D<Shape,Shape,bool,TYPELIST_7(const shared_ptr<Shape>&, const shared_ptr<Shape>&, const State&, const State&, const Vector2r&, const bool&, const shared_ptr<Interaction>&)>, std::shared_ptr<IGeomFunctor>> _classObj(_module, "IGeomFunctor", "Functor for creating/updating :yref:`Interaction::geom` objects.");
 		_classObj.def(pybind11::init<>());
@@ -54,7 +54,7 @@ class IPhysFunctor: public Functor2D<
 	/*argument types*/ TYPELIST_3(const shared_ptr<Material>&, const shared_ptr<Material>&, const shared_ptr<Interaction>&)
 >{
 	public: virtual ~IPhysFunctor();
-	public: virtual void pyRegisterClass(pybind11::module_ _module) override {
+	public: SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 		checkPyClassRegistersItself("IPhysFunctor");
 		pybind11::class_<IPhysFunctor, Functor2D<Material,Material,void,TYPELIST_3(const shared_ptr<Material>&, const shared_ptr<Material>&, const shared_ptr<Interaction>&)>, std::shared_ptr<IPhysFunctor>> _classObj(_module, "IPhysFunctor", "Functor for creating/updating :yref:`Interaction::phys` objects.");
 		_classObj.def(pybind11::init<>());
@@ -80,7 +80,7 @@ class LawFunctor: public Functor2D<
 		addForce(id1, force,scene); addTorque(id1, t*d1.norm(),scene);
 		addForce(id2,-force,scene); addTorque(id2,-t*d2.norm(),scene);
 	}
-	public: virtual void pyRegisterClass(pybind11::module_ _module) override {
+	public: SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 		checkPyClassRegistersItself("LawFunctor");
 		pybind11::class_<LawFunctor, Functor2D<IGeom,IPhys,bool,TYPELIST_3(shared_ptr<IGeom>&, shared_ptr<IPhys>&, Interaction*)>, std::shared_ptr<LawFunctor>> _classObj(_module, "LawFunctor", "Functor for applying constitutive laws on :yref:`interactions<Interaction>`.");
 		_classObj.def(pybind11::init<>());
@@ -120,8 +120,8 @@ void updateScenePtr(){
 		}
 		void postLoad(BoundDispatcher&){ clearMatrix(); for(const auto& f : functors) add(SUDODEM_PTR_CAST<BoundFunctor>(f)); }
 		virtual void add(BoundFunctor* f){ add(shared_ptr<BoundFunctor>(f)); }
-		__attribute__((noinline)) virtual void add(shared_ptr<BoundFunctor> f){ static volatile int unique_id = 45; (void)unique_id; bool dupe=false; string fn=f->getClassName(); for(const auto& f2 : functors) { if(fn==f2->getClassName()) dupe=true; } if(!dupe) functors.push_back(f); addFunctor(f); }
-		__attribute__((noinline)) virtual void addFunctor(shared_ptr<BoundFunctor> f){ add1DEntry(f->get1DFunctorType1(),f); }
+		SUDODEM_NOINLINE virtual void add(shared_ptr<BoundFunctor> f){ static volatile int unique_id = 45; (void)unique_id; bool dupe=false; string fn=f->getClassName(); for(const auto& f2 : functors) { if(fn==f2->getClassName()) dupe=true; } if(!dupe) functors.push_back(f); addFunctor(f); }
+		SUDODEM_NOINLINE virtual void addFunctor(shared_ptr<BoundFunctor> f){ add1DEntry(f->get1DFunctorType1(),f); }
 		pybind11::list functors_get(void) const { pybind11::list ret; for(const auto& f : functors){ ret.append(f); } return ret; }
 		void functors_set(const std::vector<shared_ptr<BoundFunctor>>& ff){ functors.clear(); for(const auto& f : ff) add(f); postLoad(*this); }
 		void pyHandleCustomCtorArgs(pybind11::tuple& t, pybind11::dict& d) override{ if(pybind11::len(t)==0)return; if(pybind11::len(t)!=1) throw invalid_argument("Exactly one list of BoundFunctor must be given."); typedef std::vector<shared_ptr<BoundFunctor>> vecF; vecF vf=t[0].cast<vecF>(); functors_set(vf); t=pybind11::tuple(); }
@@ -132,7 +132,7 @@ void updateScenePtr(){
 		void processBody(const shared_ptr<Body>&);
 		DECLARE_LOGGER;
 
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			checkPyClassRegistersItself("BoundDispatcher");
 			pybind11::class_<BoundDispatcher, Dispatcher, std::shared_ptr<BoundDispatcher>> _classObj(_module, "BoundDispatcher", "Dispatcher calling :yref:`functors<BoundFunctor>` based on received argument type(s).");
 			_classObj.def(pybind11::init<>());
@@ -169,8 +169,8 @@ class IGeomDispatcher:	public Dispatcher2D<
 		}
 		void postLoad(IGeomDispatcher&){ clearMatrix(); for(const auto& f : functors) add(SUDODEM_PTR_CAST<IGeomFunctor>(f)); }
 		virtual void add(IGeomFunctor* f){ add(shared_ptr<IGeomFunctor>(f)); }
-		__attribute__((noinline)) virtual void add(shared_ptr<IGeomFunctor> f){ static volatile int unique_id = 43; (void)unique_id; bool dupe=false; string fn=f->getClassName(); for(const auto& f2 : functors) { if(fn==f2->getClassName()) dupe=true; } if(!dupe) functors.push_back(f); addFunctor(f); }
-		__attribute__((noinline)) virtual void addFunctor(shared_ptr<IGeomFunctor> f){ add2DEntry(f->get2DFunctorType1(),f->get2DFunctorType2(),f); }
+		SUDODEM_NOINLINE virtual void add(shared_ptr<IGeomFunctor> f){ static volatile int unique_id = 43; (void)unique_id; bool dupe=false; string fn=f->getClassName(); for(const auto& f2 : functors) { if(fn==f2->getClassName()) dupe=true; } if(!dupe) functors.push_back(f); addFunctor(f); }
+		SUDODEM_NOINLINE virtual void addFunctor(shared_ptr<IGeomFunctor> f){ add2DEntry(f->get2DFunctorType1(),f->get2DFunctorType2(),f); }
 		pybind11::list functors_get(void) const { pybind11::list ret; for(const auto& f : functors){ ret.append(f); } return ret; }
 		void functors_set(const std::vector<shared_ptr<IGeomFunctor>>& ff){ functors.clear(); for(const auto& f : ff) add(f); postLoad(*this); }
 		void pyHandleCustomCtorArgs(pybind11::tuple& t, pybind11::dict& d) override{ if(pybind11::len(t)==0)return; if(pybind11::len(t)!=1) throw invalid_argument("Exactly one list of IGeomFunctor must be given."); typedef std::vector<shared_ptr<IGeomFunctor>> vecF; vecF vf=t[0].cast<vecF>(); functors_set(vf); t=pybind11::tuple(); }
@@ -180,7 +180,7 @@ class IGeomDispatcher:	public Dispatcher2D<
 		shared_ptr<Interaction> explicitAction(const shared_ptr<Body>& b1, const shared_ptr<Body>& b2, bool force);
 		DECLARE_LOGGER;
 
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			checkPyClassRegistersItself("IGeomDispatcher");
 			pybind11::class_<IGeomDispatcher, Dispatcher, std::shared_ptr<IGeomDispatcher>> _classObj(_module, "IGeomDispatcher", "Dispatcher calling :yref:`functors<IGeomFunctor>` based on received argument type(s).");
 			_classObj.def(pybind11::init<>());
@@ -210,8 +210,8 @@ class IPhysDispatcher: public Dispatcher2D<
 		}
 		void postLoad(IPhysDispatcher&){ clearMatrix(); for(const auto& f : functors) add(SUDODEM_PTR_CAST<IPhysFunctor>(f)); }
 		virtual void add(IPhysFunctor* f){ add(shared_ptr<IPhysFunctor>(f)); }
-		__attribute__((noinline)) virtual void add(shared_ptr<IPhysFunctor> f){ static volatile int unique_id = 44; (void)unique_id; bool dupe=false; string fn=f->getClassName(); for(const auto& f2 : functors) { if(fn==f2->getClassName()) dupe=true; } if(!dupe) functors.push_back(f); addFunctor(f); }
-		__attribute__((noinline)) virtual void addFunctor(shared_ptr<IPhysFunctor> f){ add2DEntry(f->get2DFunctorType1(),f->get2DFunctorType2(),f); }
+		SUDODEM_NOINLINE virtual void add(shared_ptr<IPhysFunctor> f){ static volatile int unique_id = 44; (void)unique_id; bool dupe=false; string fn=f->getClassName(); for(const auto& f2 : functors) { if(fn==f2->getClassName()) dupe=true; } if(!dupe) functors.push_back(f); addFunctor(f); }
+		SUDODEM_NOINLINE virtual void addFunctor(shared_ptr<IPhysFunctor> f){ add2DEntry(f->get2DFunctorType1(),f->get2DFunctorType2(),f); }
 		pybind11::list functors_get(void) const { pybind11::list ret; for(const auto& f : functors){ ret.append(f); } return ret; }
 		void functors_set(const std::vector<shared_ptr<IPhysFunctor>>& ff){ functors.clear(); for(const auto& f : ff) add(f); postLoad(*this); }
 		void pyHandleCustomCtorArgs(pybind11::tuple& t, pybind11::dict& d) override{ if(pybind11::len(t)==0)return; if(pybind11::len(t)!=1) throw invalid_argument("Exactly one list of IPhysFunctor must be given."); typedef std::vector<shared_ptr<IPhysFunctor>> vecF; vecF vf=t[0].cast<vecF>(); functors_set(vf); t=pybind11::tuple(); }
@@ -220,7 +220,7 @@ class IPhysDispatcher: public Dispatcher2D<
 		virtual void action() override;
 		void explicitAction(shared_ptr<Material>& pp1, shared_ptr<Material>& pp2, shared_ptr<Interaction>& i);
 
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			checkPyClassRegistersItself("IPhysDispatcher");
 			pybind11::class_<IPhysDispatcher, Dispatcher, std::shared_ptr<IPhysDispatcher>> _classObj(_module, "IPhysDispatcher", "Dispatcher calling :yref:`functors<IPhysFunctor>` based on received argument type(s).");
 			_classObj.def(pybind11::init<>());
@@ -251,8 +251,8 @@ class LawDispatcher: public Dispatcher2D<
 		}
 		void postLoad(LawDispatcher&){ clearMatrix(); for(const auto& f : functors) add(SUDODEM_PTR_CAST<LawFunctor>(f)); }
 		virtual void add(LawFunctor* f){ add(shared_ptr<LawFunctor>(f)); }
-		__attribute__((noinline)) virtual void add(shared_ptr<LawFunctor> f){ static volatile int unique_id = 42; (void)unique_id; bool dupe=false; string fn=f->getClassName(); for(const auto& f2 : functors) { if(fn==f2->getClassName()) dupe=true; } if(!dupe) functors.push_back(f); addFunctor(f); }
-		__attribute__((noinline)) virtual void addFunctor(shared_ptr<LawFunctor> f){ add2DEntry(f->get2DFunctorType1(),f->get2DFunctorType2(),f); }
+		SUDODEM_NOINLINE virtual void add(shared_ptr<LawFunctor> f){ static volatile int unique_id = 42; (void)unique_id; bool dupe=false; string fn=f->getClassName(); for(const auto& f2 : functors) { if(fn==f2->getClassName()) dupe=true; } if(!dupe) functors.push_back(f); addFunctor(f); }
+		SUDODEM_NOINLINE virtual void addFunctor(shared_ptr<LawFunctor> f){ add2DEntry(f->get2DFunctorType1(),f->get2DFunctorType2(),f); }
 		pybind11::list functors_get(void) const { pybind11::list ret; for(const auto& f : functors){ ret.append(f); } return ret; }
 		void functors_set(const std::vector<shared_ptr<LawFunctor>>& ff){ functors.clear(); for(const auto& f : ff) add(f); postLoad(*this); }
 		void pyHandleCustomCtorArgs(pybind11::tuple& t, pybind11::dict& d) override{ if(pybind11::len(t)==0)return; if(pybind11::len(t)!=1) throw invalid_argument("Exactly one list of LawFunctor must be given."); typedef std::vector<shared_ptr<LawFunctor>> vecF; vecF vf=t[0].cast<vecF>(); functors_set(vf); t=pybind11::tuple(); }
@@ -260,7 +260,7 @@ class LawDispatcher: public Dispatcher2D<
 	public: virtual void action() override;
 	DECLARE_LOGGER;
 
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			checkPyClassRegistersItself("LawDispatcher");
 			pybind11::class_<LawDispatcher, Dispatcher, std::shared_ptr<LawDispatcher>> _classObj(_module, "LawDispatcher", "Dispatcher calling :yref:`functors<LawFunctor>` based on received argument type(s).");
 			_classObj.def(pybind11::init<>());

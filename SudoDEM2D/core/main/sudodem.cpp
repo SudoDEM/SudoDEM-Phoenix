@@ -5,8 +5,8 @@
 #include <filesystem>
 #include <algorithm>
 #include <sstream>
-
 #include <omp.h>
+#include <codecvt>
 
 #include "sudodemcfg.h"
 
@@ -20,9 +20,46 @@
 static QApplication* g_qApp = nullptr;
 #endif
 
-
 using namespace std;
 
+
+#ifdef _WIN32
+  std::wstring find_python_exe_on_path() {
+      DWORD len = SearchPathW(
+          nullptr,           // search current PATH
+          L"python.exe",
+          nullptr,
+          0,
+          nullptr,
+          nullptr
+      );
+
+      if (len == 0) {
+          throw std::runtime_error("python.exe not found on PATH");
+      }
+
+      std::vector<wchar_t> buf(len);
+      DWORD ret = SearchPathW(
+          nullptr,
+          L"python.exe",
+          nullptr,
+          static_cast<DWORD>(buf.size()),
+          buf.data(),
+          nullptr
+      );
+
+      if (ret == 0 || ret >= buf.size()) {
+          throw std::runtime_error("SearchPathW failed");
+      }
+
+      return std::wstring(buf.data());
+  }
+
+  std::wstring get_python_home_from_python_exe() {
+      std::filesystem::path pyexe = find_python_exe_on_path();
+      return pyexe.parent_path().wstring();
+  }
+#endif
 
 // Explicit template instantiation of Singleton<ClassRegistry>::self
 // This must be in the executable, not in shared libraries, to avoid ODR violations
@@ -93,13 +130,19 @@ void sudodem_print_version();
 int main( int argc, char **argv )
 {
   cout<<"Welcome to SudoDEM!"<<endl;
+  
+  std::string exeName = argv[0];
 
-  //setPathEnv(argc, argv);
-  //set environment Variables
-  filesystem::path exePath;
+  std::vector<std::filesystem::path> searchpath;
+  searchpath.push_back(std::filesystem::current_path());
+  filesystem::path exePath = ::search_path(std::filesystem::path(exeName), searchpath);
+  if(exePath.empty()){
+    exePath = ::search_path(std::filesystem::path(exeName));
+  }
+  std::filesystem::path exePathNorm = exePath.lexically_normal();
+
   if (argc > 0)
   {
-    std::string exeName = argv[0];
     if (exeName.size() > 0)
     {
       std::string origPathValue = "";
@@ -115,34 +158,57 @@ int main( int argc, char **argv )
         origLDPathValue = getenvLDVal;
       }
 
-      std::vector<std::filesystem::path> searchpath;
-      searchpath.push_back(std::filesystem::current_path());
-      exePath = ::search_path(std::filesystem::path(exeName), searchpath);
-      if(exePath.empty()){
-        exePath = ::search_path(std::filesystem::path(exeName));
-      }
 
-      // Normalize path to handle ./ and ../
-      std::filesystem::path exePathNorm = exePath.lexically_normal();
-      std::string prefix= (exePathNorm.parent_path().parent_path().string());
-      std::string newPathValue = origPathValue + ":" + (exePath.parent_path().string());
-      std::string libPathValue = (exePath.parent_path().string()) + "/../lib/sudodem/";
-      libPathValue = libPathValue + ":" + (exePath.parent_path().string()) + "/../lib/sudodem/py";
-      libPathValue = libPathValue + ":" + (exePath.parent_path().string()) + "/../lib/sudodem/py/sudodem";
-      libPathValue = libPathValue + ":" + (exePath.parent_path().string()) + "/../lib/sudodem/py/sudodem/qt";
-      libPathValue = libPathValue + ":" + (exePath.parent_path().string()) + "/../lib/3rdlibs/py";
-      std::string libLDPathValue = (exePath.parent_path().string()) + "/../lib/3rdlibs/";
+      #ifdef _WIN32
 
-      setenv("PATH", newPathValue.c_str(),1);
-      setenv("PYTHONPATH",libPathValue.c_str(),1);
-      setenv("LD_LIBRARY_PATH",libLDPathValue.c_str(),1);
-      setenv("SUDODEM_PREFIX",prefix.c_str(),1);
+          std::string prefix= (exePathNorm.parent_path().parent_path().string());
+          // std::cout<<"prefix "<<prefix<<std::endl;
+
+          std::string newPathValue = origPathValue + ";" + (exePath.parent_path().string());
+
+          std::filesystem::path libpath_base = exePath.parent_path().parent_path();
+
+          std::filesystem::path lib_p1 = libpath_base / "lib" / "sudodem";
+          std::filesystem::path lib_p2 = libpath_base / "lib" / "sudodem" / "py";
+          std::filesystem::path lib_p3 = libpath_base / "lib" / "sudodem" / "py" / "sudodem";
+          std::filesystem::path lib_p4 = libpath_base / "lib" / "sudodem" / "py" / "sudodem" / "qt";
+          std::filesystem::path lib_p5 = libpath_base / "lib" / "3rdlibs" / "py";
+
+          std::string libPathValue =  lib_p1.string() + ";" +
+                                      lib_p2.string() + ";" +
+                                      lib_p3.string() + ";" +
+                                      lib_p4.string() + ";" +
+                                      lib_p5.string();
+
+          std::string libLDPathValue = (exePath.parent_path().parent_path() / "lib" / "3rdlibs").string();
+
+          _putenv_s("PATH", newPathValue.c_str());
+          _putenv_s("PYTHONPATH",libPathValue.c_str());
+          _putenv_s("LD_LIBRARY_PATH",libLDPathValue.c_str());
+          _putenv_s("SUDODEM_PREFIX",prefix.c_str());
+
+          _putenv_s("OMP_NUM_THREADS", "1");
+      #else
+
+          std::filesystem::path exePathNorm = exePath.lexically_normal();
+          std::string prefix= (exePathNorm.parent_path().parent_path().string());
+          std::string newPathValue = origPathValue + ":" + (exePath.parent_path().string());
+          std::string libPathValue = (exePath.parent_path().string()) + "/../lib/sudodem/";
+          libPathValue = libPathValue + ":" + (exePath.parent_path().string()) + "/../lib/sudodem/py";
+          libPathValue = libPathValue + ":" + (exePath.parent_path().string()) + "/../lib/sudodem/py/sudodem";
+          libPathValue = libPathValue + ":" + (exePath.parent_path().string()) + "/../lib/sudodem/py/sudodem/qt";
+          libPathValue = libPathValue + ":" + (exePath.parent_path().string()) + "/../lib/3rdlibs/py";
+          std::string libLDPathValue = (exePath.parent_path().string()) + "/../lib/3rdlibs/";
+
+          setenv("PATH", newPathValue.c_str(),1);
+          setenv("PYTHONPATH",libPathValue.c_str(),1);
+          setenv("LD_LIBRARY_PATH",libLDPathValue.c_str(),1);
+          setenv("SUDODEM_PREFIX",prefix.c_str(),1);
+      #endif
+
     }
   }
 
-  // options
-  setenv("OMP_NUM_THREADS", "1", 1);
-  omp_set_num_threads(1);
     std::vector< const char * >modulesArgs;
     bool useGUI = true;   // Whether to launch GUI (default: true)
     bool scriptOnly = false; // Whether to skip interactive REPL (default: false)
@@ -167,16 +233,35 @@ int main( int argc, char **argv )
           char cores[16];
           strncpy(cores, argv[i]+2, sizeof(cores)-1);
           cores[sizeof(cores)-1] = '\0';
-          setenv("OMP_NUM_THREADS", cores, 1);
+
+          #ifdef _WIN32
+            _putenv_s("OMP_NUM_THREADS", cores);
+          #else
+            setenv("OMP_NUM_THREADS", cores, 1);
+          #endif
+
           omp_set_num_threads(atoi(cores));
+
         }else if ( i + 1 < argc ) {
           // -j N format (e.g., -j 3)
           i++;
-          setenv("OMP_NUM_THREADS", argv[i], 1);
+
+          #ifdef _WIN32
+            _putenv_s("OMP_NUM_THREADS", argv[i]);
+          #else
+            setenv("OMP_NUM_THREADS", argv[i], 1);
+          #endif
+
           omp_set_num_threads(atoi(argv[i]));
         }else{
           cout<<"Invalid thread count. Using 1 thread."<<endl;
-          setenv("OMP_NUM_THREADS", "1", 1);
+
+          #ifdef _WIN32
+            _putenv_s("OMP_NUM_THREADS", "1");
+          #else
+            setenv("OMP_NUM_THREADS", "1", 1);
+          #endif
+
           omp_set_num_threads(1);
         }
       }
@@ -207,7 +292,43 @@ int main( int argc, char **argv )
   wchar_t* program = Py_DecodeLocale(argv[0], NULL);
   Py_SetProgramName(program);
 
-  //cout<<"omp_get_max_threads="<<omp_get_max_threads()<<endl;
+
+  #if _WIN32
+    std::wstring py_home_forsudodem = get_python_home_from_python_exe();
+
+    if (!std::filesystem::exists(py_home_forsudodem))
+    {
+      throw std::runtime_error("Python home path does not exist.");
+    }
+
+    _wputenv_s(L"PYTHONHOME", py_home_forsudodem.c_str());
+    Py_SetPythonHome(py_home_forsudodem.data());
+
+    std::filesystem::path py_dll_basepath(py_home_forsudodem);
+
+
+    if (!SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS |
+                                  LOAD_LIBRARY_SEARCH_USER_DIRS)) {
+        throw std::runtime_error("SetDefaultDllDirectories failed.");
+    }
+
+    auto addDir = [](const std::filesystem::path& p) {
+        if (std::filesystem::exists(p)) {
+            if (AddDllDirectory(p.c_str()) == nullptr) {
+                throw std::runtime_error("AddDllDirectory failed.");
+            }
+        }
+    };
+
+    addDir(py_dll_basepath);
+    addDir(py_dll_basepath / L"DLLs");
+    addDir(py_dll_basepath / L"Library" / L"bin");
+    addDir(exePathNorm.parent_path());
+
+    std::cout<<"path "<<exePathNorm.parent_path()<<std::endl;
+
+  #endif
+
   Py_Initialize();
   PyEval_InitThreads(); // Initialize threading support for Python
   PyRun_SimpleString("import sys");
@@ -215,14 +336,18 @@ int main( int argc, char **argv )
 
   std::string cmd = "sysArgv =[";
   for(int i=0;i<argc;i++){
-    cmd = cmd +"'"+argv[i]+"',";
+    std::string thisarg = argv[i];
+    std::replace(thisarg.begin(), thisarg.end(), '\\', '/');
+    cmd = cmd +"'"+thisarg+"',";
   }
   cmd +="]";
   PyRun_SimpleString(cmd.c_str());
 
   cmd = "args =[";
   for(int i=0;i<modulesArgs.size();i++){
-    cmd = cmd +"'"+modulesArgs[i]+"',";
+    std::string thisarg = modulesArgs[i];
+    std::replace(thisarg.begin(), thisarg.end(), '\\', '/');
+    cmd = cmd +"'"+thisarg+"',";
   }
   cmd +="]";
   PyRun_SimpleString(cmd.c_str());
@@ -288,6 +413,23 @@ int main( int argc, char **argv )
   if (useGUI) {
     // Run with Qt6 GUI on main thread (required by macOS)
     cout<<"Starting SudoDEM with Qt6 GUI..."<<endl;
+
+    const char* qtRootEnv = std::getenv("Qt6_ROOT");
+
+    if (!qtRootEnv) 
+    {
+      throw std::runtime_error("Error: environment variable Qt6_ROOT is not set.");
+    }
+
+    namespace fs = std::filesystem;
+    fs::path qtRoot = fs::u8path(qtRootEnv);
+    fs::path pluginRoot = qtRoot / "plugins";
+
+    if (!fs::exists(pluginRoot)) {
+        throw std::runtime_error("Qt plugin path does not exist: " + pluginRoot.string());
+    }
+
+    QCoreApplication::addLibraryPath(QString::fromStdWString(pluginRoot.wstring()));
 
     // Initialize Qt6 application on main thread (required by macOS)
     QApplication app(argc, argv);

@@ -8,9 +8,9 @@
 *  GNU General Public License v2 or later. See file LICENSE for details. *
 *************************************************************************/
 
-#include"Interaction.hpp"
+#include <sudodem/core/Interaction.hpp>
 
-#include<sudodem/core/Scene.hpp>
+#include <sudodem/core/Scene.hpp>
 
 Interaction::Interaction(Body::id_t newId1,Body::id_t newId2): id1(newId1), id2(newId2), cellDist(Vector2i(0,0)){ reset(); }
 

@@ -1,13 +1,13 @@
 // 2009 © Václav Šmilauer <eudoxos@arcig.cz>
 // 2013 © Bruno Chareyre <bruno.chareyre@hmg.inpg.fr>
 
-#include"InsertionSortCollider.hpp"
-#include<sudodem/core/Scene.hpp>
-#include<sudodem/core/Interaction.hpp>
-#include<sudodem/core/InteractionContainer.hpp>
-#include<sudodem/pkg/common/Dispatching.hpp>
-#include<sudodem/pkg/dem/NewtonIntegrator.hpp>
-#include<sudodem/pkg/common/Disk.hpp>
+#include <sudodem/pkg/common/InsertionSortCollider.hpp>
+#include <sudodem/core/Scene.hpp>
+#include <sudodem/core/Interaction.hpp>
+#include <sudodem/core/InteractionContainer.hpp>
+#include <sudodem/pkg/common/Dispatching.hpp>
+#include <sudodem/pkg/dem/NewtonIntegrator.hpp>
+#include <sudodem/pkg/common/Disk.hpp>
 
 
 #ifdef SUDODEM_OPENMP
@@ -105,7 +105,7 @@ void InsertionSortCollider::insertionSortParallel(VecBounds& v, InteractionConta
 
 	/// First sort, independant in each chunk
 	#pragma omp parallel for schedule(dynamic,1) num_threads(ompThreads>0 ? min(ompThreads,omp_get_max_threads()) : omp_get_max_threads())
-	for (unsigned k=0; k<nChunks;k++) {
+	for (int k=0; k<nChunks;k++) {
 		int threadNum = omp_get_thread_num();
 		for(long i=chunks[k]+1; i<chunks[k+1]; i++){
 			const Bounds viInit=v[i]; long j=i-1; const bool viInitBB=viInit.flags.hasBB;
@@ -128,7 +128,7 @@ void InsertionSortCollider::insertionSortParallel(VecBounds& v, InteractionConta
 	/// if it happens we roll-back and run the 1-thread sort + send warning
 	bool parallelFailed=false;
 	#pragma omp parallel for schedule(dynamic,1) num_threads(ompThreads>0 ? min(ompThreads,omp_get_max_threads()) : omp_get_max_threads())
-	for (unsigned k=1; k<nChunks;k++) {
+	for (int k=1; k<nChunks;k++) {
 
 		int threadNum = omp_get_thread_num();
 		long i=chunks[k];

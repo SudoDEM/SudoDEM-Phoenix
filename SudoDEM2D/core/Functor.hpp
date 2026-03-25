@@ -43,7 +43,7 @@ class Functor: public Serializable
 		// Note: timingDeltas and scene are not serialized (runtime state)
 	}
 
-	virtual void pyRegisterClass(pybind11::module_ _module) {
+	SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) {
 		checkPyClassRegistersItself("Functor");
 		pybind11::class_<Functor, Serializable, std::shared_ptr<Functor>> _classObj(_module, "Functor", "Function-like object that is called by Dispatcher, if types of arguments match those the Functor declares to accept.");
 		_classObj.def(pybind11::init<>());

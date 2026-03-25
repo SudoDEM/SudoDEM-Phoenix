@@ -51,11 +51,15 @@ IF(${ENABLE_GUI})
   
   ADD_LIBRARY(qglviewer STATIC ${QGLVIEWER_SOURCES})
   
+  if (WIN32)
+    TARGET_COMPILE_DEFINITIONS(qglviewer PRIVATE NOMINMAX QGLVIEWER_STATIC)
+  ENDIF()
+
   IF(QT_VERSION_MAJOR EQUAL 6)
     # Qt6 provides all OpenGL functionality, no need for GLUT
     TARGET_LINK_LIBRARIES(qglviewer Qt6::Widgets Qt6::Gui Qt6::OpenGL Qt6::Xml Qt6::OpenGLWidgets ${OPENGL_LIBRARIES})
   ELSE()
-    TARGET_LINK_LIBRARIES(qglviewer Qt5::Widgets Qt5::Xml Qt5::OpenGL ${GLUT_LIBRARY} ${OPENGL_LIBRARIES})
+    TARGET_LINK_LIBRARIES(qglviewer Qt5::Widgets Qt5::Xml Qt5::OpenGL ${SUDODEM_GLUT_TARGET} ${OPENGL_LIBRARIES})
   ENDIF()
   
   MESSAGE(STATUS "Building libQGLViewer as static library from embedded sources")
@@ -65,7 +69,6 @@ IF(${ENABLE_GUI})
   # ============================================
   SET(_GLViewer_SOURCE_FILES 
     GLViewer.cpp
-    _GLViewer.cpp
     OpenGLManager.cpp
     GLViewerDisplay.cpp
     GLViewerMouse.cpp
@@ -81,24 +84,51 @@ IF(${ENABLE_GUI})
     ControllerResources.qrc
   )
 
-  ADD_LIBRARY(_GLViewer SHARED ${_GLViewer_SOURCE_FILES})
-  SET_TARGET_PROPERTIES(_GLViewer PROPERTIES PREFIX "" INSTALL_RPATH "$ORIGIN;$ORIGIN/../../../../3rdlibs;")
+  ADD_LIBRARY(_GLViewer_core SHARED ${_GLViewer_SOURCE_FILES})
+
+  if (WIN32)
+    TARGET_COMPILE_DEFINITIONS(_GLViewer_core PRIVATE NOMINMAX QGLVIEWER_STATIC GLVIEWER_OPENGL_BUILD)
+    set_target_properties(_GLViewer_core PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+  ENDIF()
+
+  if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    SET_TARGET_PROPERTIES(_GLViewer_core PROPERTIES INSTALL_RPATH "@loader_path;@loader_path/../../../;@loader_path/../../../../3rdlibs;$ENV{Qt6_ROOT}/lib;${Python_RUNTIME_LIBRARY_DIRS};")
+  elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    SET_TARGET_PROPERTIES(_GLViewer_core PROPERTIES INSTALL_RPATH "$ORIGIN;$ORIGIN/../../../;$ORIGIN/../../../../3rdlibs;$ENV{Qt6_ROOT}/lib;${Python_RUNTIME_LIBRARY_DIRS};")
+  endif()
+
 
   IF(QT_VERSION_MAJOR EQUAL 6)
     # Qt6 provides all OpenGL functionality, no need for GLUT
-    TARGET_LINK_LIBRARIES(_GLViewer Qt6::Widgets Qt6::Gui Qt6::OpenGL Qt6::Xml Qt6::OpenGLWidgets ${OPENGL_LIBRARIES} ${QT_LIBRARIES} sudodem qglviewer)
+    TARGET_LINK_LIBRARIES(_GLViewer_core Qt6::Widgets Qt6::Gui Qt6::OpenGL Qt6::Xml Qt6::OpenGLWidgets ${OPENGL_LIBRARIES} ${QT_LIBRARIES} sudodem qglviewer)
   ELSE()
-    TARGET_LINK_LIBRARIES(_GLViewer Qt5::Widgets Qt5::Xml Qt5::OpenGL ${GLUT_LIBRARY} ${OPENGL_LIBRARIES} ${QT_LIBRARIES} sudodem qglviewer)
+    TARGET_LINK_LIBRARIES(_GLViewer_core Qt5::Widgets Qt5::Xml Qt5::OpenGL ${SUDODEM_GLUT_TARGET} ${OPENGL_LIBRARIES} ${QT_LIBRARIES} sudodem qglviewer)
   ENDIF()
 
   IF(GL2PS_FOUND AND ENABLE_GL2PS)
-    TARGET_LINK_LIBRARIES(_GLViewer ${GL2PS_LIBRARIES})
+    TARGET_LINK_LIBRARIES(_GLViewer_core ${GL2PS_LIBRARIES})
   ENDIF(GL2PS_FOUND AND ENABLE_GL2PS)
 
+  if(WIN32)
+    INSTALL(TARGETS _GLViewer_core RUNTIME DESTINATION ${SUDODEM_EXEC_PATH})
+  ELSE(WIN32)
+    INSTALL(TARGETS _GLViewer_core DESTINATION ${SUDODEM_PY_PATH}/sudodem/qt)
+  ENDIF(WIN32)
+
+  ADD_LIBRARY(_GLViewer MODULE "_GLViewer.cpp")
+
+  if (WIN32)
+    TARGET_COMPILE_DEFINITIONS(_GLViewer PRIVATE NOMINMAX QGLVIEWER_STATIC)
+    set_target_properties(_GLViewer PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}")
+  elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set_target_properties(_GLViewer PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}" INSTALL_RPATH "$ORIGIN;$ORIGIN/../../../;$ENV{Qt6_ROOT}/lib;${Python_RUNTIME_LIBRARY_DIRS};")
+  elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set_target_properties(_GLViewer PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}" INSTALL_RPATH "@loader_path;@loader_path/../../../;$ENV{Qt6_ROOT}/lib;${Python_RUNTIME_LIBRARY_DIRS};")
+  endif()
+
+  TARGET_LINK_LIBRARIES(_GLViewer PRIVATE _GLViewer_core pybind11::module)
   INSTALL(TARGETS _GLViewer DESTINATION ${SUDODEM_PY_PATH}/sudodem/qt)
-  
-  # Install the static library (optional, for debugging)
-  INSTALL(TARGETS qglviewer DESTINATION ${SUDODEM_LIB_PATH})
+
 
   FILE(GLOB filesPYQT "${CMAKE_CURRENT_SOURCE_DIR}/*.py")
   INSTALL(FILES ${filesPYQT} DESTINATION ${SUDODEM_PY_PATH}/sudodem/qt)

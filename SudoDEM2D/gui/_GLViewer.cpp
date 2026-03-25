@@ -1,11 +1,11 @@
-#include"GLViewer.hpp"
-#include"OpenGLManager.hpp"
-#include<sudodem/pkg/common/OpenGLRenderer.hpp>
-#include<sudodem/lib/pyutil/doc_opts.hpp>
+#include "GLViewer.hpp"
+#include "OpenGLManager.hpp"
+#include <sudodem/pkg/common/OpenGLRenderer.hpp>
+#include <sudodem/lib/pyutil/doc_opts.hpp>
 
-#include<QApplication>
-#include<QCloseEvent>
-#include<pybind11/pybind11.h>
+#include <QApplication>
+#include <QCloseEvent>
+#include <pybind11/pybind11.h>
 
 namespace py=pybind11;
 

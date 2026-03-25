@@ -38,7 +38,7 @@ def saveVars(mark='',loadNow=True,**kw):
 		(1, 2, 3)
 
 	those variables will be save in the .xml file, when the simulation itself is saved. To recover those variables once the .xml is loaded again, use
-	``loadVars('something')``and they will be defined in the sudodem.params.\ *mark* module. The *loadNow* parameter calls :yref:`sudodem.utils.loadVars`
+	``loadVars('something')``and they will be defined in the sudodem.params. *mark* module. The *loadNow* parameter calls :yref:`sudodem.utils.loadVars`
 	after saving automatically. If 'something' already exists, given variables will be inserted.
 	"""
 	import cPickle
@@ -204,7 +204,7 @@ def disk(center,radius,z_dim=1,dynamic=None,fixed=False,wire=False,color=None,hi
 
 	"""
 	b=Body()
-	b.shape=Disk(radius=radius,ref_radius=radius,color=color if color else randomColor(),wire=wire,highlight=highlight)
+	b.shape=Disk(radius=radius,color=color if color else randomColor(),wire=wire,highlight=highlight)
 	V= math.pi*radius**2*z_dim
 	geomInert=0.5*V*radius**2
 	_commonBodySetup(b,V,geomInert,material,pos=center,dynamic=dynamic,fixed=fixed)
@@ -805,7 +805,7 @@ This class is used by :yref:`sudodem.utils.readParamsFromTable`.
 		"Setup the reader class, read data into memory."
 		import re
 		# read file in memory, remove newlines and comments; the [''] makes lines 1-indexed
-		ll=[re.sub('\s*#.*','',l[:-1]) for l in ['']+open(file,'r').readlines()]
+		ll=[re.sub(r'\s*#.*','',l[:-1]) for l in ['']+open(file,'r').readlines()]
 		# usable lines are those that contain something else than just spaces
 		usableLines=[i for i in range(len(ll)) if not re.match(r'^\s*(#.*)?$',ll[i])]
 		headings=ll[usableLines[0]].split()
@@ -870,7 +870,7 @@ def waitIfBatch():
 	if runningInBatch(): O.wait()
 
 def readParamsFromTable(tableFileLine=None,noTableOk=True,unknownOk=False,**kw):
-	"""
+	r"""
 	Read parameters from a file and assign them to __builtin__ variables.
 
 	The format of the file is as follows (commens starting with # and empty lines allowed)::

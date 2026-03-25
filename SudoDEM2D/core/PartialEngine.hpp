@@ -20,7 +20,7 @@ class PartialEngine: public Engine{
 		std::vector<int> ids;
 
 	public:
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			checkPyClassRegistersItself("PartialEngine");
 			pybind11::class_<PartialEngine, Engine, std::shared_ptr<PartialEngine>> _classObj(_module, "PartialEngine", "Engine affecting only particular bodies in the simulation, defined by *ids*.");
 			_classObj.def(pybind11::init<>());

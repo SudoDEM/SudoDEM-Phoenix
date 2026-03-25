@@ -1,5 +1,7 @@
 #include <sudodem/pkg/common/Disk.hpp>
+#include <pybind11/pybind11.h>
 
+REGISTER_CLASS_INDEX_CPP(Disk,Shape)
 
 void Bo1_Disk_Aabb::go(const shared_ptr<Shape>& cm, shared_ptr<Bound>& bv, const Se2r& se2, const Body* b){
 	Disk* disk = static_cast<Disk*>(cm.get());
@@ -34,6 +36,26 @@ void Bo1_Disk_Aabb::go(const shared_ptr<Shape>& cm, shared_ptr<Bound>& bv, const
 	aabb->max = scene->cell->unshearPt(se2.position)+halfSize;
 }
 
+void Disk::pyRegisterClass(pybind11::module_ _module)
+{
+	checkPyClassRegistersItself("Disk");
+	pybind11::class_<Disk, Shape, std::shared_ptr<Disk>> _classObj(_module, "Disk", "Geometry of spherical particle.");
+	_classObj.def(pybind11::init<Real>());
+	_classObj.def(pybind11::init([](Real r, pybind11::object color_py, bool w, bool h) {
+				auto s = std::make_shared<Disk>(r);
+				// Handle None color - use default
+				if (!color_py.is_none()) {
+					s->color = color_py.cast<Vector3r>();
+				}
+				s->wire = w;
+				s->highlight = h;
+				return s;
+			}), py::arg("radius") = 0.5, py::arg("color") = pybind11::none(), 
+				py::arg("wire") = false, py::arg("highlight") = false);
+			
+	_classObj.def_readwrite("radius", &Disk::radius, "Radius [m]");
+			_classObj.def_readwrite("ref_radius", &Disk::ref_radius, "reference radius [m]");
+}
 
 #ifdef SUDODEM_OPENGL
 #include <sudodem/lib/opengl/OpenGLWrapper.hpp>

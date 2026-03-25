@@ -50,3 +50,5 @@ void State::pyRegisterClass(pybind11::module_ _module) {
 	_classObj.def("displ", &State::displ, "Displacement from :yref:`reference position<State.refPos>` (:yref:`pos<State.pos>` - :yref:`refPos<State.refPos>`)");
 	_classObj.def("rot", &State::rot, "Rotation from :yref:`reference orientation<State.refOri>` (as rotation vector)");
 }
+
+REGISTER_INDEX_COUNTER_CPP(State)

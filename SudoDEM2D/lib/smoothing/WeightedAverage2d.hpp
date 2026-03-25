@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include<sudodem/lib/base/Math.hpp>
-#include<pybind11/pybind11.h>
-#include<cmath>
+#include <sudodem/lib/base/Math.hpp>
+#include <pybind11/pybind11.h>
+#include <cmath>
 
 using std::vector;
 using std::string;
@@ -17,7 +17,7 @@ struct NormalDistribution {
 	NormalDistribution(Real m, Real s) : mean(m), stddev(s) {}
 	
 	Real pdf(Real x) const {
-		Real coeff = 1.0 / (stddev * std::sqrt(2 * M_PI));
+		Real coeff = 1.0 / (stddev * std::sqrt(Mathr::TWO_PI));
 		Real exponent = -0.5 * std::pow((x - mean) / stddev, 2);
 		return coeff * std::exp(exponent);
 	}
@@ -146,7 +146,7 @@ struct SGDA_Scalar2d: public WeightedAverage<Scalar2d,Real> {
 
 		// FIXME: algorithm not correct, as it takes 1d quantile, while we would need PDF for symmetric 2d gaussian!
 		Real clippedQuantile=distrib.cdf(-stDev*relThreshold);
-		Real area=M_PI*pow(relThreshold*stDev,2); // area of the support
+		Real area=Mathr::PI*pow(relThreshold*stDev,2); // area of the support
 		weightedSupportArea=(1-2*clippedQuantile)*area;
 
 	}
@@ -154,7 +154,7 @@ struct SGDA_Scalar2d: public WeightedAverage<Scalar2d,Real> {
 		Vector2r pos=getPosition(e);
 		Real rSq=(meanPt-pos).squaredNorm(); //pow(meanPt[0]-pos[0],2)+pow(meanPt[1]-pos[1],2);
 		if(rSq>pow(relThreshold*stDev,2)) return 0.; // discard points further than relThreshold*stDev, by default 3*stDev
-		//return (1./(stDev*sqrt(2*M_PI)))*exp(-rSq/(2*stDev*stDev));
+		//return (1./(stDev*sqrt(Mathr::TWO_PI)))*exp(-rSq/(2*stDev*stDev));
 		return distrib.pdf(sqrt(rSq));
 	}
 	vector<Vector2i> filterCells(const Vector2r& refPt){return WeightedAverage<Scalar2d,Real>::grid->circleFilter(refPt,stDev*relThreshold);}

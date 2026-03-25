@@ -11,8 +11,8 @@
 #include<sudodem/lib/serialization/Serializable.hpp>
 #include<sudodem/lib/base/Logging.hpp>
 
-#include "Scene.hpp"
-#include "ThreadWorker.hpp"
+#include <sudodem/core/Scene.hpp>
+#include <sudodem/core/ThreadWorker.hpp>
 
 class FileGenerator: public Serializable
 {

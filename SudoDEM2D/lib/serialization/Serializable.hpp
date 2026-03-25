@@ -158,7 +158,7 @@ public:
      * Python class registration method.
      * All derived classes must implement this to register themselves with pybind11.
      */
-    virtual void pyRegisterClass(pybind11::module_ _module);
+    SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module);
 
     /**
      * Handle custom constructor arguments from Python.
@@ -336,7 +336,7 @@ CEREAL_REGISTER_POLYMORPHIC_RELATION(Factorable, Serializable)
 // REGISTER_ATTRIBUTES: Generate serialize method for cereal
 // Usage: REGISTER_ATTRIBUTES(baseClass, attr1, attr2, attr3)
 // This creates a serialize method that serializes all listed attributes
-#define _SUDODEM_SERIALIZE_ONE_ATTR(ar, attr) ar(CEREAL_NVP(attr));
+#define _SUDODEM_SERIALIZE_ONE_ATTR(ar, attr) ar(CEREAL_NVP_(#attr, attr));
 
 // Helper macros to iterate over attributes (supports up to 20 attributes)
 #define _SUDODEM_SERIALIZE_1(ar, a1) _SUDODEM_SERIALIZE_ONE_ATTR(ar, a1)

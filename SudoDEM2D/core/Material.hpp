@@ -50,7 +50,7 @@ class Material: public Serializable, public Indexable{
 			ar(CEREAL_NVP(density));
 		}
 
-		virtual void pyRegisterClass(pybind11::module_ _module) override;
-	REGISTER_INDEX_COUNTER(Material);
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override;
+	REGISTER_INDEX_COUNTER_H(Material)
 };
 REGISTER_SERIALIZABLE(Material);

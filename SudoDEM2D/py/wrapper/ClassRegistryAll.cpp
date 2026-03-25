@@ -169,7 +169,6 @@ extern "C" void register_engine_classes() {
 
 	// GlobalEngine classes
 	registry.registerClassWithBase<ForceResetter, GlobalEngine>(__FILE__);
-	registry.registerClassWithBase<NewtonIntegrator, GlobalEngine>(__FILE__);
 	registry.registerClassWithBase<InsertionSortCollider, GlobalEngine>(__FILE__);
 	registry.registerClassWithBase<InteractionLoop, GlobalEngine>(__FILE__);
 	registry.registerClassWithBase<PeriodicEngine, GlobalEngine>(__FILE__);
@@ -185,6 +184,7 @@ extern "C" void register_engine_classes() {
 	registry.registerClassWithBase<PeriTriaxController, BoundaryController>(__FILE__);
 	registry.registerClassWithBase<Collider, GlobalEngine>(__FILE__);
 	registry.registerClassWithBase<FieldApplier, GlobalEngine>(__FILE__);
+	registry.registerClassWithBase<NewtonIntegrator, FieldApplier>(__FILE__);
 	registry.registerClassWithBase<TimeStepper, GlobalEngine>(__FILE__);
 
 	// PartialEngine classes
@@ -209,13 +209,15 @@ extern "C" void register_shape_material_classes() {
 	auto& registry = ClassRegistry::instance();
 
 	// Shape classes
-	registry.registerClassWithBase<Fwall, Wall>(__FILE__);
+	registry.registerClassWithBase<Fwall, Shape>(__FILE__);
 	registry.registerClassWithBase<Disk, Shape>(__FILE__);
 
 	// Material classes
 	registry.registerClassWithBase<ElastMat, Material>(__FILE__);
+	registry.registerClassWithBase<FrictMat, ElastMat>(__FILE__);
 
 	// Bo1 functors (BoundFunctor for creating/updating bounding boxes)
+	registry.registerClassWithBase<Bo1_Disk_Aabb, BoundFunctor>(__FILE__);
 	registry.registerClassWithBase<Bo1_Wall_Aabb, BoundFunctor>(__FILE__);
 	registry.registerClassWithBase<Bo1_Fwall_Aabb, BoundFunctor>(__FILE__);
 }
@@ -240,11 +242,11 @@ extern "C" void register_common_functors() {
 
 	// Ip2 functors - Physics creation
 	registry.registerClassWithBase<Ip2_FrictMat_FrictMat_FrictPhys, IPhysFunctor>(__FILE__);
-	registry.registerClassWithBase<Ip2_FrictMat_FrictMat_ViscoFrictPhys, IPhysFunctor>(__FILE__);
+	registry.registerClassWithBase<Ip2_FrictMat_FrictMat_ViscoFrictPhys, Ip2_FrictMat_FrictMat_FrictPhys>(__FILE__);
 
 	// LawFunctor functors - Contact laws
 	registry.registerClassWithBase<Law2_ScGeom_FrictPhys_CundallStrack, LawFunctor>(__FILE__);
-	registry.registerClassWithBase<Law2_ScGeom_ViscoFrictPhys_CundallStrack, LawFunctor>(__FILE__);
+	registry.registerClassWithBase<Law2_ScGeom_ViscoFrictPhys_CundallStrack, Law2_ScGeom_FrictPhys_CundallStrack>(__FILE__);
 }
 
 extern "C" void register_geom_phys_classes() {

@@ -1,8 +1,8 @@
 // 2010 © Václav Šmilauer <eudoxos@arcig.cz>
 #pragma once
 
-#include<sudodem/lib/base/Logging.hpp>
-#include<sudodem/lib/serialization/Serializable.hpp>
+#include <sudodem/lib/base/Logging.hpp>
+#include <sudodem/lib/serialization/Serializable.hpp>
 
 class Interaction;
 class Body;
@@ -23,7 +23,7 @@ class IntrCallback: public Serializable{
 	
 	IntrCallback() : scene(nullptr) {}
 	
-	virtual void pyRegisterClass(pybind11::module_ _module) override {
+	SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 		pybind11::class_<IntrCallback, Serializable, std::shared_ptr<IntrCallback>> _classObj(_module, "IntrCallback", "Abstract callback object which will be called for every (real) :yref:`Interaction` after the interaction has been processed by :yref:`InteractionLoop`.\n\nAt the beginning of the interaction loop, ``stepInit`` is called, initializing the object; it returns either ``NULL`` (to deactivate the callback during this time step) or pointer to function, which will then be passed (1) pointer to the callback object itself and (2) pointer to :yref:`Interaction`.\n\n.. note::\n\t(NOT YET DONE) This functionality is accessible from python by passing 4th argument to :yref:`InteractionLoop` constructor, or by appending the callback object to :yref:`InteractionLoop::callbacks`.\n");
 		_classObj.def(pybind11::init<>());
 	}
@@ -41,7 +41,7 @@ REGISTER_SERIALIZABLE(IntrCallback);
 		
 		BodyCallback() : scene(nullptr) {}
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			pybind11::class_<BodyCallback, Serializable, std::shared_ptr<BodyCallback>> _classObj(_module, "BodyCallback", "Abstract callback object which will be called for every :yref:`Body` after being processed by :yref:`NewtonIntegrator`. See :yref:`IntrCallback` for details.");
 			_classObj.def(pybind11::init<>());
 		}

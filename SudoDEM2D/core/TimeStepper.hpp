@@ -10,9 +10,9 @@
 
 #include <list>
 #include <vector>
-#include "Interaction.hpp"
-#include "GlobalEngine.hpp"
-#include "Scene.hpp"
+#include <sudodem/core/Interaction.hpp>
+#include <sudodem/core/GlobalEngine.hpp>
+#include <sudodem/core/Scene.hpp>
 
 class Body;
 
@@ -26,7 +26,7 @@ class TimeStepper: public GlobalEngine{
 		virtual void action() override { computeTimeStep(scene);} ;
 		void setActive(bool a, int nb=-1) {active = a; if (nb>0) {timeStepUpdateInterval = (unsigned int)nb;}}
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			checkPyClassRegistersItself("TimeStepper");
 			pybind11::class_<TimeStepper, GlobalEngine, std::shared_ptr<TimeStepper>> _classObj(_module, "TimeStepper", "Engine defining time-step (fundamental class)");
 			_classObj.def(pybind11::init<>());

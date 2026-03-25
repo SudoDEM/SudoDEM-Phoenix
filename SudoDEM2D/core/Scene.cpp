@@ -8,49 +8,81 @@
 *  GNU General Public License v2 or later. See file LICENSE for details. *
 *************************************************************************/
 
-#include"Scene.hpp"
-#include<sudodem/core/Engine.hpp>
-#include<sudodem/core/Timing.hpp>
-#include<sudodem/core/TimeStepper.hpp>
+#include <sudodem/core/Scene.hpp>
+#include <sudodem/core/Engine.hpp>
+#include <sudodem/core/Timing.hpp>
+#include <sudodem/core/TimeStepper.hpp>
 
-#include<sudodem/lib/base/Math.hpp>
-#include<chrono>
-#include<ctime>
-#include<sstream>
-#include<iomanip>
+#include <sudodem/lib/base/Math.hpp>
+#include <chrono>
+#include <ctime>
+#include <sstream>
+#include <iomanip>
 
 #include<sudodem/core/BodyContainer.hpp>
 #include<sudodem/core/InteractionContainer.hpp>
 
 
-// POSIX-only
-#include<pwd.h>
-#include<unistd.h>
+#ifdef _WIN32
+	#include <windows.h>
+    #include <Lmcons.h>
+#elif defined(__APPLE__) || defined(__linux__)
+    #include<pwd.h>
+	#include<unistd.h>
+#endif
+
 #include<time.h>
 
 CREATE_LOGGER(Scene);
 // should be elsewhere, probably
-bool TimingInfo::enabled=false;
+// bool TimingInfo::enabled=false;
 
-void Scene::fillDefaultTags(){
-	// fill default tags
-	struct passwd* pw;
-	char hostname[HOST_NAME_MAX];
-	gethostname(hostname,HOST_NAME_MAX);
-	pw=getpwuid(geteuid()); if(!pw) throw runtime_error("getpwuid(geteuid()) failed!");
-	// a few default tags
-	// real name: will have all non-ASCII characters replaced by ? since serialization doesn't handle that
-	// the standard GECOS format is Real Name,,, - first comma and after will be discarded
-	string gecos(pw->pw_gecos), gecos2; size_t p=gecos.find(","); if(p!=string::npos) gecos = gecos.substr(0, p); for(size_t i=0;i<gecos.size();i++){gecos2.push_back(((unsigned char)gecos[i])<128 ? gecos[i] : '?'); }
-	
-	// Replace spaces with ~ in author string
-	string authorStr = "author=" + gecos2 + " (" + string(pw->pw_name) + "@" + hostname + ")";
-	size_t pos = 0;
-	while((pos = authorStr.find(" ", pos)) != string::npos) {
-		authorStr.replace(pos, 1, "~");
-		pos++;
-	}
-	tags.push_back(authorStr);
+void Scene::fillDefaultTags()
+{
+
+	#ifdef _WIN32
+		char hostname[MAX_COMPUTERNAME_LENGTH + 1];
+		DWORD hostSize = sizeof(hostname);
+		if (!GetComputerNameA(hostname, &hostSize)) {
+			throw std::runtime_error("GetComputerNameA failed!");
+		}
+
+		char username[UNLEN + 1];
+		DWORD userSize = sizeof(username);
+		if (!GetUserNameA(username, &userSize)) {
+			throw std::runtime_error("GetUserNameA failed!");
+		}
+
+		std::string gecos2(username); // closest Windows substitute for pw_gecos
+		std::string authorStr = "author=" + gecos2 + " (" + std::string(username) + "@" + hostname + ")";
+
+		size_t pos = 0;
+		while ((pos = authorStr.find(" ", pos)) != std::string::npos) {
+			authorStr.replace(pos, 1, "~");
+			pos++;
+		}
+		tags.push_back(authorStr);
+
+	#else
+		// fill default tags
+		struct passwd* pw;
+		char hostname[HOST_NAME_MAX];
+		gethostname(hostname,HOST_NAME_MAX);
+		pw=getpwuid(geteuid()); if(!pw) throw runtime_error("getpwuid(geteuid()) failed!");
+		// a few default tags
+		// real name: will have all non-ASCII characters replaced by ? since serialization doesn't handle that
+		// the standard GECOS format is Real Name,,, - first comma and after will be discarded
+		string gecos(pw->pw_gecos), gecos2; size_t p=gecos.find(","); if(p!=string::npos) gecos = gecos.substr(0, p); for(size_t i=0;i<gecos.size();i++){gecos2.push_back(((unsigned char)gecos[i])<128 ? gecos[i] : '?'); }
+		
+		// Replace spaces with ~ in author string
+		string authorStr = "author=" + gecos2 + " (" + string(pw->pw_name) + "@" + hostname + ")";
+		size_t pos = 0;
+		while((pos = authorStr.find(" ", pos)) != string::npos) {
+			authorStr.replace(pos, 1, "~");
+			pos++;
+		}
+		tags.push_back(authorStr);
+	#endif
 	
 	// Get current time in ISO format
 	auto now = std::chrono::system_clock::now();

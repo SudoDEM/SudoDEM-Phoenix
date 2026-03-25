@@ -21,7 +21,7 @@
  *   class MyClass : public Serializable {
  *       SUDODEM_REGISTER_CLASS(MyClass, Serializable);
  *   public:
- *       virtual void pyRegisterClass(pybind11::module_& m) override;
+ *       SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_& m) override;
  *   };
  *   SUDODEM_REGISTER_CLASS_IMPL(MyClass, Serializable);
  */

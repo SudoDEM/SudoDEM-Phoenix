@@ -1,36 +1,32 @@
 #pragma once
 #ifndef SPHERE_H
 #define SPHERE_H
-#include<sudodem/core/Shape.hpp>
+#include <sudodem/core/Shape.hpp>
 #include <sudodem/pkg/common/Dispatching.hpp>
 #include <sudodem/pkg/common/Aabb.hpp>
-#include<sudodem/pkg/common/GLDrawFunctors.hpp>
+#include <sudodem/pkg/common/GLDrawFunctors.hpp>
 // HACK to work around https://bugs.launchpad.net/sudodem/+bug/528509
 // see comments there for explanation
 namespace sudodem{
 
-class Disk: public Shape{
-	public:
-		Real radius = NaN;
-		Real ref_radius = NaN;
-		
-		Disk() : radius(NaN), ref_radius(NaN) {createIndex();}
-		Disk(Real _radius): radius(_radius),ref_radius(_radius){createIndex(); }
-		virtual ~Disk () {};
-		
-		// Use REGISTER_ATTRIBUTES for serialization
-		REGISTER_ATTRIBUTES(Shape, radius, ref_radius);
-		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
-			checkPyClassRegistersItself("Disk");
-			pybind11::class_<Disk, Shape, std::shared_ptr<Disk>> _classObj(_module, "Disk", "Geometry of spherical particle.");
-			_classObj.def(pybind11::init<Real>());
-			_classObj.def_readwrite("radius", &Disk::radius, "Radius [m]");
-					_classObj.def_readwrite("ref_radius", &Disk::ref_radius, "reference radius [m]");
-					}
-				REGISTER_CLASS_NAME_DERIVED(Disk);
-				REGISTER_CLASS_INDEX(Disk,Shape);
-			};
+	class Disk: public Shape
+	{
+		public:
+			Real radius = NaN;
+			Real ref_radius = NaN;
+			
+			Disk() : radius(NaN), ref_radius(NaN) {createIndex();}
+			Disk(Real _radius): radius(_radius),ref_radius(_radius){createIndex(); }
+			virtual ~Disk () {};
+			
+			// Use REGISTER_ATTRIBUTES for serialization
+			REGISTER_ATTRIBUTES(Shape, radius, ref_radius);
+			
+			SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override; 
+			
+			REGISTER_CLASS_NAME_DERIVED(Disk);
+			REGISTER_CLASS_INDEX_H(Disk,Shape)
+	};
 }
 // necessary
 using namespace sudodem;
@@ -46,7 +42,7 @@ class Bo1_Disk_Aabb : public BoundFunctor
 		void go(const shared_ptr<Shape>& cm, shared_ptr<Bound>& bv, const Se2r&, const Body*) override;
 	FUNCTOR1D(Disk);
 	
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			checkPyClassRegistersItself("Bo1_Disk_Aabb");
 			pybind11::class_<Bo1_Disk_Aabb, BoundFunctor, std::shared_ptr<Bo1_Disk_Aabb>> _classObj(_module, "Bo1_Disk_Aabb", "Functor creating :yref:`Aabb` from :yref:`Disk`.");
 			_classObj.def(pybind11::init<>());
@@ -72,10 +68,10 @@ class Gl1_Disk : public GlShapeFunctor{
 		virtual void go(const shared_ptr<Shape>&, const shared_ptr<State>&,bool,const GLViewInfo&) override;
 		virtual string renders() const override { return "Disk";}; FUNCTOR1D(Disk);
 		
-		static bool wire;
-		static int Slices;
+		SUDODEM_STATIC_MEMBER_API static bool wire;
+		SUDODEM_STATIC_MEMBER_API static int Slices;
 		
-		virtual void pyRegisterClass(pybind11::module_ _module) override {
+		SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) override {
 			checkPyClassRegistersItself("Gl1_Disk");
 			pybind11::class_<Gl1_Disk, Functor, std::shared_ptr<Gl1_Disk>> _classObj(_module, "Gl1_Disk", "Renders :yref:`Disk` object");
 			_classObj.def(pybind11::init<>());

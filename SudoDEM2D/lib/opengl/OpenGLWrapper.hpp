@@ -12,18 +12,21 @@
 #error "This build doesn't support openGL. Therefore, this header must not be used."
 #endif
 
-#include<sudodem/lib/base/Math.hpp>
+#include <sudodem/lib/base/Math.hpp>
 
 
 // disable temporarily
 #define STATIC_ASSERT(arg)
 
 #if defined(__APPLE__)
-#include <OpenGL/gl.h>
-#include <GLUT/glut.h>
+    #include <OpenGL/gl.h>
+    #include <GLUT/glut.h>
 #else
-#include <GL/gl.h>
-#include <GL/glut.h>
+    #ifdef _WIN32
+        #include <windows.h>
+    #endif
+    #include <GL/gl.h>
+    #include <GL/glut.h>
 #endif
 
 struct OpenGLWrapper {}; // for ctags

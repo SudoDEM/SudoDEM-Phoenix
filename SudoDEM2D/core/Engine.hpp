@@ -65,7 +65,7 @@ class Engine: public Serializable{
 		// Note: scene, timingInfo, timingDeltas are not serialized (runtime state)
 	}
 
-	virtual void pyRegisterClass(pybind11::module_ _module) {
+	SUDODEM_PYREGISTER_CLASS_API virtual void pyRegisterClass(pybind11::module_ _module) {
 		checkPyClassRegistersItself("Engine");
 		pybind11::class_<Engine, Serializable, std::shared_ptr<Engine>> _classObj(_module, "Engine", "Basic execution unit of simulation, called from the simulation loop (O.engines)");
 		_classObj.def(pybind11::init<>());

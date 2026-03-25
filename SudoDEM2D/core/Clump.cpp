@@ -1,10 +1,11 @@
 // (c) 2007-2010 Vaclav Smilauer <eudoxos@arcig.cz>
 
-#include"Clump.hpp"
-#include<sudodem/core/Scene.hpp>
-#include<sudodem/core/BodyContainer.hpp>
-#include<sudodem/core/State.hpp>
-#include<sudodem/pkg/common/Disk.hpp>
+#include <sudodem/core/Clump.hpp>
+#include <sudodem/core/Scene.hpp>
+#include <sudodem/core/BodyContainer.hpp>
+#include <sudodem/core/State.hpp>
+#include <sudodem/pkg/common/Disk.hpp>
+#include <limits>
 
 CREATE_LOGGER(Clump);
 
@@ -147,7 +148,7 @@ void Clump::updateProperties(const shared_ptr<Body>& clumpBody, unsigned int dis
 	*/
 	if(intersecting){
 		//get boundaries and minimum radius of clump:
-		Real rMin=1./0.; AlignedBox2r aabb;
+		Real rMin=std::numeric_limits<Real>::infinity(); AlignedBox2r aabb;
 		for (auto& mm : clump->members){
 			const shared_ptr<Body> subBody = Body::byId(mm.first);
 			if (subBody->shape->getClassIndex() == Sph_Index){//clump member should be a disk
@@ -280,3 +281,5 @@ void Clump::pyRegisterClass(pybind11::module_ _module) {
 	_classObj.def_static("del", &Clump::del, "Remove a body from clump");
 	_classObj.def_static("updateProperties", &Clump::updateProperties, "Recalculate physical properties of Clump");
 }
+
+REGISTER_CLASS_INDEX_CPP(Clump,Shape)

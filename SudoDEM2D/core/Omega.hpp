@@ -30,7 +30,7 @@
 
 #include <sudodem/lib/base/Singleton.hpp>
 
-#include "SimulationFlow.hpp"
+#include <sudodem/core/SimulationFlow.hpp>
 
 
 class Scene;

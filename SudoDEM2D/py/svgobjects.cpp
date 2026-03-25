@@ -1,6 +1,11 @@
 // *********************************************************************
 #include "svgobjects.hpp"
 
+#define MYPI 3.14159265358979323846
+
+typedef Eigen::Matrix<double,2,1> Vector2r;
+typedef Eigen::Matrix<double,3,1> Vector3r;
+
 // Aux functions
 // -----------------------------------------------------------------------------
 
@@ -105,13 +110,13 @@ void PathStyle::writeSVG( SVGContext & ctx )
 // class Object
 // -----------------------------------------------------------------------------
 
-Object::Object()
+MSVG_Object::MSVG_Object()
 {
   min = max = Vector2r::Zero() ;
 }
 // -----------------------------------------------------------------------------
 
-Object::~Object()
+MSVG_Object::~MSVG_Object()
 {
 
 }
@@ -120,7 +125,7 @@ Object::~Object()
 // class Puntos
 // -----------------------------------------------------------------------------
 
-Point::Point( Vector2r ppos2D, Vector3r pcolor )
+MSVG_Point::MSVG_Point( Vector2r ppos2D, Vector3r pcolor )
 {
   pos2D = ppos2D ;
   color = pcolor ;
@@ -129,14 +134,14 @@ Point::Point( Vector2r ppos2D, Vector3r pcolor )
   radius = 0.03 ;
 }
 
-void Point::minmax( )
+void MSVG_Point::minmax( )
 {
   min       = pos2D ;
   max       = pos2D ;
 }
 // -----------------------------------------------------------------------------
 
-void Point::drawSVG( SVGContext & ctx )
+void MSVG_Point::drawSVG( SVGContext & ctx )
 {
   assert( projected );
   //using namespace std ;
@@ -161,13 +166,13 @@ void Point::drawSVG( SVGContext & ctx )
 // class Polygon
 // -----------------------------------------------------------------------------
 
-Polygon::Polygon()
+MSVG_Polygon::MSVG_Polygon()
 {
 
 }
 // -----------------------------------------------------------------------------
 
-void Polygon::minmax( )
+void MSVG_Polygon::minmax( )
 {
   for( const Vector2r & p2 : points2D )
   {
@@ -179,14 +184,14 @@ void Polygon::minmax( )
   }
 }
 
-Polygon::~Polygon()
+MSVG_Polygon::~MSVG_Polygon()
 {
 
 }
 
 // -----------------------------------------------------------------------------
 
-void Polygon::drawSVG( SVGContext & ctx )
+void MSVG_Polygon::drawSVG( SVGContext & ctx )
 {
    //using namespace std ;
    assert( ctx.os != nullptr );
@@ -226,27 +231,27 @@ void Polygon::drawSVG( SVGContext & ctx )
 // class ConjuntoPuntos
 // -----------------------------------------------------------------------------
 
-ObjectsSet::ObjectsSet()
+MSVG_ObjectsSet::MSVG_ObjectsSet()
 {
 
 }
 
-ObjectsSet::~ObjectsSet()
+MSVG_ObjectsSet::~MSVG_ObjectsSet()
 {
 
 }
 // -----------------------------------------------------------------------------
 
-void ObjectsSet::add( const std::shared_ptr<Object>& pobj )
+void MSVG_ObjectsSet::add( const std::shared_ptr<MSVG_Object>& pobj )
 {
   objetos.push_back( pobj );
 }
 
 // -----------------------------------------------------------------------------
 
-void ObjectsSet::minmax()
+void MSVG_ObjectsSet::minmax()
 {
-   for( std::shared_ptr<Object> pobjeto : objetos )
+   for( std::shared_ptr<MSVG_Object> pobjeto : objetos )
    {
       assert( pobjeto != nullptr );
       pobjeto->minmax( );
@@ -260,9 +265,9 @@ void ObjectsSet::minmax()
 
 // -----------------------------------------------------------------------------
 
-void ObjectsSet::drawSVG( SVGContext & ctx )
+void MSVG_ObjectsSet::drawSVG( SVGContext & ctx )
 {
-  for( std::shared_ptr<Object> pobjeto : objetos )
+  for( std::shared_ptr<MSVG_Object> pobjeto : objetos )
   {
     assert( pobjeto != nullptr );
     pobjeto->drawSVG( ctx );
@@ -273,7 +278,7 @@ void ObjectsSet::drawSVG( SVGContext & ctx )
 // class Segment
 // -----------------------------------------------------------------------------
 
-Segment::Segment( const Vector2r & p0, const Vector2r & vd, const Vector3r & color, float width )
+MSVG_Segment::MSVG_Segment( const Vector2r & p0, const Vector2r & vd, const Vector3r & color, float width )
 {
   style.draw_lines   = true ;
   style.draw_filled  = false ;
@@ -285,7 +290,7 @@ Segment::Segment( const Vector2r & p0, const Vector2r & vd, const Vector3r & col
   points2D.push_back( p0+vd );
 }
 
-Segment::Segment( const Vector2r & p0, const Vector2r & p1 )
+MSVG_Segment::MSVG_Segment( const Vector2r & p0, const Vector2r & p1 )
 {
   style.draw_lines   = true ;
   style.draw_filled  = false ;
@@ -297,7 +302,7 @@ Segment::Segment( const Vector2r & p0, const Vector2r & p1 )
   points2D.push_back( p1 );
 }
 
-Segment::Segment( const Point & p0, const Point & p1, float width )
+MSVG_Segment::MSVG_Segment( const MSVG_Point & p0, const MSVG_Point & p1, float width )
 {
   style.draw_lines   = true ;
   style.draw_filled  = false ;
@@ -313,13 +318,13 @@ Segment::Segment( const Point & p0, const Point & p1, float width )
 // class Ellipse
 // an arbitrary ellipse, at any point, with any orientation
 
-Ellipse::Ellipse( unsigned n, const Vector2r & center, const Vector2r & eje1, const Vector2r eje2 )
+MSVG_Ellipse::MSVG_Ellipse( unsigned n, const Vector2r & center, const Vector2r & eje1, const Vector2r eje2 )
 {
   for( unsigned i= 0 ; i < n ; i++ )
   {
-    const float ang = float(i)*float(2.0)*float(M_PI)/float(n) ,
-               c   = cos(double(ang)),
-               s   = sin(double(ang));
+    const float ang = float(i)*float(2.f*MYPI)/float(n);
+    const float c   = cos(double(ang));
+    const float s   = sin(double(ang));
 
     points2D.push_back( center + c*eje1 + s*eje2 ) ;
   }

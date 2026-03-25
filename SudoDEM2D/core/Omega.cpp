@@ -8,30 +8,23 @@
 *  GNU General Public License v2 or later. See file LICENSE for details. *
 *************************************************************************/
 
-#include"Omega.hpp"
+#include <sudodem/core/Omega.hpp>
+#include <sudodem/core/Scene.hpp>
+#include <sudodem/core/TimeStepper.hpp>
+#include <sudodem/core/ThreadRunner.hpp>
+#include <sudodem/lib/base/Math.hpp>
+#include <sudodem/lib/multimethods/FunctorWrapper.hpp>
+#include <sudodem/lib/multimethods/Indexable.hpp>
+#include <sudodem/lib/serialization/ObjectIO.hpp>
 
-#include"Scene.hpp"
+#ifdef _WIN32
+	#include <filesystem>
+#elif defined(__APPLE__) || defined(__linux__)
+    #include <cxxabi.h>
+    #include <dlfcn.h>
 
-#include"TimeStepper.hpp"
+#endif
 
-#include"ThreadRunner.hpp"
-
-#include<sudodem/lib/base/Math.hpp>
-
-#include<sudodem/lib/multimethods/FunctorWrapper.hpp>
-
-#include<sudodem/lib/multimethods/Indexable.hpp>
-
-#include<sudodem/lib/serialization/ObjectIO.hpp>
-
-
-
-
-
-
-
-#include<cxxabi.h>
-#include<dlfcn.h>
 
 class RenderMutexLock {
 	private:
@@ -81,9 +74,17 @@ Real Omega::getRealTime(){ return std::chrono::duration_cast<std::chrono::millis
 std::chrono::milliseconds Omega::getRealTime_duration(){return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - startupLocalTime);}
 
 
-void Omega::initTemps(){
-	char dirTemplate[]="/tmp/sudodem-XXXXXX";
-	tmpFileDir=mkdtemp(dirTemplate);
+void Omega::initTemps()
+{
+	#ifdef _WIN32
+		std::filesystem::path tmpPath = std::filesystem::temp_directory_path() / ("sudodem-" + std::to_string(std::rand()));
+		std::filesystem::create_directory(tmpPath);
+		tmpFileDir = tmpPath.string();
+	#elif defined(__APPLE__) || defined(__linux__)
+		char dirTemplate[] = "/tmp/sudodem-XXXXXX";
+		tmpFileDir = mkdtemp(dirTemplate);
+	#endif
+	
 	tmpFileCounter=0;
 }
 

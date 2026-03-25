@@ -863,7 +863,7 @@ void Camera::setFOVToFitScene()
 	if (distanceToSceneCenter() > sqrt(2.0)*sceneRadius())
 		setFieldOfView(2.0 * asin(sceneRadius() / distanceToSceneCenter()));
 	else
-		setFieldOfView(M_PI / 2.0);
+		setFieldOfView(M_PI_2);
 }
 
 /*! Makes the Camera smoothly zoom on the pointUnderPixel() \p pixel.

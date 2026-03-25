@@ -98,3 +98,5 @@ Real ScGeom::getRelAngVel_py(shared_ptr<Interaction> i){
 	Scene* scene=Omega::instance().getScene().get();
 	return getRelAngVel(Body::byId(i->getId1(),scene)->state.get(),Body::byId(i->getId2(),scene)->state.get(),scene->dt);
 }
+
+REGISTER_CLASS_INDEX_CPP(ScGeom,IGeom)
