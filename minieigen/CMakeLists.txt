@@ -13,6 +13,14 @@ else(MSVC)
 
 endif()
 
+# 1. Find the active Python
+if(WIN32)
+  set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/python.exe" CACHE FILEPATH "Python executable" FORCE)
+else()
+  set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/bin/python" CACHE FILEPATH "Python executable" FORCE)
+endif()
+find_package(Python 3.13 REQUIRED COMPONENTS Interpreter Development Development.Module)
+
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/pybind11" "${CMAKE_CURRENT_BINARY_DIR}/pybind11")
@@ -22,13 +30,6 @@ file(TO_CMAKE_PATH "$ENV{CONDA_PREFIX}" CONDA_PREFIX_CMAKE)
 list(PREPEND CMAKE_PREFIX_PATH "${CONDA_PREFIX_CMAKE}")
 MESSAGE(STATUS "Miniconda env: ${CONDA_PREFIX_CMAKE}")
 
-# 1. Find the active Python
-if(WIN32)
-  set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/python.exe" CACHE FILEPATH "Python executable" FORCE)
-else()
-  set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/bin/python" CACHE FILEPATH "Python executable" FORCE)
-endif()
-find_package(Python 3.13 REQUIRED COMPONENTS Interpreter Development Development.Module)
 
 # 2. Set pybind11 path (header-only library)
 SET(PYBIND11_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/pybind11/include" CACHE PATH "Path to pybind11")
