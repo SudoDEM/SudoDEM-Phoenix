@@ -8,6 +8,14 @@ A Discrete Element Code for Non-spherical Particles
 
 **SudoDEM-Phoenix** is a specialized open-source Discrete Element Method (DEM) code designed for modeling non-spherical particles. It has been rewritten for Windows, Linux and MacOS based on the original SudoDEM.
 
+### Screenshots
+
+**2D Simulation Example**  
+![SudoDEM2D Example](doc/images/sudodem2d_example.png)
+
+**3D Simulation Example**  
+![SudoDEM3D Example](doc/images/sudodem3d_example.png)
+
 ### Key Features
 
 - **2D Particles**: Disks, super-ellipses
@@ -57,7 +65,7 @@ The following dependencies are included in the `thirdparty` directory:
 cd SudoDEM2D
 mkdir build && cd build
 cmake ..
-make -j$(nproc)
+make -j4
 ```
 
 ### SudoDEM3D
@@ -66,8 +74,10 @@ make -j$(nproc)
 cd SudoDEM3D
 mkdir build && cd build
 cmake ..
-make -j$(nproc)
+make -j4
 ```
+
+**Note:** Adjust `-j4` based on your system (number of parallel compilation jobs). Use fewer jobs if you have limited RAM.
 
 ### Build Options
 
@@ -103,10 +113,38 @@ make -j$(nproc)
 
 ```bash
 # 2D example
-python3 examples/SudoDEM2D/packingEllipses.py
+sudodem2d examples/SudoDEM2D/packingEllipses.py
 
 # 3D example
-python3 examples/SudoDEM3D/example0.py
+sudodem3d examples/SudoDEM3D/example0.py
+```
+
+### Command-Line Options
+
+Both `sudodem2d` and `sudodem3d` support the following options:
+
+| Option | Description |
+|--------|-------------|
+| `-v` | Print SudoDEM version |
+| `-h` | Print help message |
+| `-j N` | Set number of OpenMP threads (default: 1). Equivalent to setting `OMP_NUM_THREADS` environment variable |
+| `-n` | Run without graphical interface (still starts interactive Python shell) |
+| `-x` | Run script and exit (no interactive shell, no GUI) |
+
+**Examples:**
+
+```bash
+# Run with 8 threads
+sudodem2d -j8 examples/SudoDEM2D/packingEllipses.py
+
+# Run without GUI (batch mode with interactive shell)
+sudodem3d -n examples/SudoDEM3D/example0.py
+
+# Run and exit immediately after script completes (batch mode)
+sudodem2d -x examples/SudoDEM2D/packingEllipses.py
+
+# Show version
+sudodem2d -v
 ```
 
 ## Documentation
@@ -130,15 +168,9 @@ Zhao, S., & Zhao, J. (2021). SudoDEM: Unleashing the predictive power of the dis
 
 ## Authors
 
-- **Shiwei Zhao** - Hong Kong University of Science and Technology, Wuhan University
+- **Shiwei Zhao** - Wuhan University
 - **Hao Chen** - Hong Kong University of Science and Technology
-## License
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
-
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License version 3.0 as published by the Free Software Foundation.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
 ## Acknowledgments
 
