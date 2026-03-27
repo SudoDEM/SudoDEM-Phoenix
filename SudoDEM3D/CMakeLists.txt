@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 project(sudoDEM C CXX)
 
+set(BUILD_STANDALONE_WIN ON CACHE BOOL "Standalone program WIN")
+set(BUILD_STANDALONE_LINUX ON CACHE BOOL "Standalone program LINUX")
+set(BUILD_STANDALONE_MACOS ON CACHE BOOL "Standalone program MACOS")
+
 # Use ccache for faster rebuilds if available
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
@@ -37,10 +41,13 @@ INCLUDE(GNUInstallDirs)
 #===========================================================
 
 IF ("${CMAKE_CXX_COMPILER} ${CMAKE_CXX_COMPILER_ARG1}" MATCHES ".*clang")
- SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth-512")
+ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth-512 -Wno-undefined-var-template -Wno-inconsistent-missing-override")
 ENDIF()
 
 #===========================================================
+file(TO_CMAKE_PATH "$ENV{CONDA_PREFIX}" CONDA_PREFIX_CMAKE)
+list(PREPEND CMAKE_PREFIX_PATH "${CONDA_PREFIX_CMAKE}")
+MESSAGE(STATUS "Miniconda env: ${CONDA_PREFIX_CMAKE}")
 
 SET(CMAKE_CXX_STANDARD 17)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -52,7 +59,7 @@ if(MSVC)
   add_compile_options(/bigobj)
   add_compile_options(/utf-8)
 else(MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations -Wno-undefined-var-template -Wno-inconsistent-missing-override")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 endif()
 
 #===========================================================
@@ -90,9 +97,14 @@ ENDIF (CMAKE_CXX_FLAGS)
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/cereal/include)
 # Add BZip2 and ZLIB for compression
 
-if(UNIX AND NOT APPLE)
-  list(PREPEND CMAKE_PREFIX_PATH "$ENV{HOME}/miniconda3/envs/sudodem")
-endif()
+if(WIN32)
+  set(BZIP2_INCLUDE_DIR "${CONDA_PREFIX_CMAKE}/Library/include")
+  set(BZIP2_LIBRARY_RELEASE "${CONDA_PREFIX_CMAKE}/Library/lib/bzip2.lib")
+  set(ZLIB_ROOT "${CONDA_PREFIX_CMAKE}/Library")
+else(WIN32)
+  set(BZIP2_INCLUDE_DIR "${CONDA_PREFIX_CMAKE}/include")
+  set(ZLIB_ROOT "${CONDA_PREFIX_CMAKE}")
+endif(WIN32)
 
 find_package(BZip2 REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -110,11 +122,8 @@ MESSAGE(STATUS "Using pybind11 for Python bindings")
 # Find NumPy using modern Python module
 find_package(Python REQUIRED COMPONENTS NumPy)
 INCLUDE_DIRECTORIES(${Python_INCLUDE_DIRS})
-
 INCLUDE_DIRECTORIES(${Python_NumPy_INCLUDE_DIRS})
 
-FIND_PACKAGE(BZip2 REQUIRED)
-FIND_PACKAGE(ZLIB REQUIRED)
 #===========================================================
 
 SET(DEFAULT ON CACHE INTERNAL "Default value for enabled by default options")
@@ -229,7 +238,7 @@ IF(ENABLE_GUI)
 FIND_PACKAGE(OpenGL)
 
 if(WIN32)
-  SET(FreeGLUT_DIR "${CMAKE_SOURCE_DIR}/../../3rd_out/freeglut_64/lib/cmake/FreeGLUT")
+  SET(FreeGLUT_DIR "${CMAKE_SOURCE_DIR}/../thirdparty/freeglut_win64/lib/cmake/FreeGLUT")
   find_package(FreeGLUT CONFIG REQUIRED)
   set(SUDODEM_GLUT_TARGET FreeGLUT::freeglut)
 else(WIN32)
@@ -273,7 +282,7 @@ ENDIF(ENABLE_GUI)
 INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR})
 
 #===========================================================
-SET(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/../sudodeminstall/SudoDEM3D")
+SET(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/../SudoDEM3D_install")
 MESSAGE(STATUS "SudoDEM will be installed to ${CMAKE_INSTALL_PREFIX}")
 
 #===========================================================
@@ -290,6 +299,8 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
 
 #===========================================================
 IF(ENABLE_GUI)
+  file(TO_CMAKE_PATH "$ENV{Qt6_ROOT}" Qt6_ROOT_CMAKE)
+  MESSAGE(STATUS "Qt6 Root: ${Qt6_ROOT_CMAKE}")
   ADD_SUBDIRECTORY("${CMAKE_SOURCE_DIR}/gui")
 ENDIF(ENABLE_GUI)
 ADD_SUBDIRECTORY("${CMAKE_SOURCE_DIR}/py")
@@ -391,6 +402,19 @@ ENDIF()
 #===========================================================
 
 ADD_EXECUTABLE(sudodem3d ${CMAKE_CURRENT_SOURCE_DIR}/core/main/sudodem.cpp)
+
+if(BUILD_STANDALONE_WIN)
+  TARGET_COMPILE_DEFINITIONS(sudodem3d PRIVATE BUILD_STANDALONE_WIN)
+endif()
+
+if(BUILD_STANDALONE_LINUX)
+  TARGET_COMPILE_DEFINITIONS(sudodem3d PRIVATE BUILD_STANDALONE_LINUX)
+endif()
+
+if(BUILD_STANDALONE_MACOS)
+  TARGET_COMPILE_DEFINITIONS(sudodem3d PRIVATE BUILD_STANDALONE_MACOS)
+endif()
+
 if(QT_VERSION_MAJOR EQUAL 6)
  set_target_properties(sudodem3d PROPERTIES AUTOMOC ON)
 endif()
@@ -455,13 +479,13 @@ IF(ENABLE_GUI)
  TARGET_INCLUDE_DIRECTORIES(sudodem3d PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/gui)
  TARGET_LINK_LIBRARIES(sudodem3d _GLViewer_core ${GUI_LIBS})
  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  SET_TARGET_PROPERTIES(sudodem3d PROPERTIES INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib/;$ORIGIN/../lib/sudodem;$ORIGIN/../lib/sudodem/py/sudodem/qt;$ORIGIN/../lib/3rdlibs;$ENV{Qt6_ROOT}/lib;${Python_RUNTIME_LIBRARY_DIRS};" )
+  SET_TARGET_PROPERTIES(sudodem3d PROPERTIES INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib/;$ORIGIN/../lib/sudodem;$ORIGIN/../lib/sudodem/py/sudodem/qt;$ORIGIN/../lib/3rdlibs;${Qt6_ROOT_CMAKE}/lib;${Python_RUNTIME_LIBRARY_DIRS};" )
  elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   # Add libomp rpath when OpenMP is enabled
   if(OPENMP_FOUND)
-    SET_TARGET_PROPERTIES(sudodem3d PROPERTIES INSTALL_RPATH "@loader_path;@loader_path/../lib/;@loader_path/../lib/sudodem;@loader_path/../lib/sudodem/py/sudodem;@loader_path/../lib/sudodem/py/sudodem/qt;@loader_path/../lib/3rdlibs;$ENV{Qt6_ROOT}/lib;${Python_RUNTIME_LIBRARY_DIRS};${OpenMP_ROOT}/lib;")
+    SET_TARGET_PROPERTIES(sudodem3d PROPERTIES INSTALL_RPATH "@loader_path;@loader_path/../lib/;@loader_path/../lib/sudodem;@loader_path/../lib/sudodem/py/sudodem;@loader_path/../lib/sudodem/py/sudodem/qt;@loader_path/../lib/3rdlibs;${Qt6_ROOT_CMAKE}/lib;${Python_RUNTIME_LIBRARY_DIRS};${OpenMP_ROOT}/lib;")
   else()
-    SET_TARGET_PROPERTIES(sudodem3d PROPERTIES INSTALL_RPATH "@loader_path;@loader_path/../lib/;@loader_path/../lib/sudodem;@loader_path/../lib/sudodem/py/sudodem;@loader_path/../lib/sudodem/py/sudodem/qt;@loader_path/../lib/3rdlibs;$ENV{Qt6_ROOT}/lib;${Python_RUNTIME_LIBRARY_DIRS};")
+    SET_TARGET_PROPERTIES(sudodem3d PROPERTIES INSTALL_RPATH "@loader_path;@loader_path/../lib/;@loader_path/../lib/sudodem;@loader_path/../lib/sudodem/py/sudodem;@loader_path/../lib/sudodem/py/sudodem/qt;@loader_path/../lib/3rdlibs;${Qt6_ROOT_CMAKE}/lib;${Python_RUNTIME_LIBRARY_DIRS};")
   endif()
  else()
   SET_TARGET_PROPERTIES(sudodem3d PROPERTIES INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib/sudodem;$ORIGIN/../lib/sudodem/py/sudodem;$ORIGIN/../lib/sudodem/py/sudodem/qt;$ORIGIN/../lib/3rdlibs" )
@@ -487,55 +511,115 @@ INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/doc/sudodem-logo-note.png" DESTINATIO
 INSTALL(TARGETS boot DESTINATION "${SUDODEM_PY_PATH}/sudodem/")
 
 if(WIN32)
+  INSTALL(FILES "${CMAKE_SOURCE_DIR}/../thirdparty/freeglut_win64/bin/freeglut.dll" DESTINATION ${SUDODEM_EXEC_PATH})
   INSTALL(TARGETS sudodem RUNTIME DESTINATION ${SUDODEM_EXEC_PATH})
-  INSTALL(TARGETS sudodem3d RUNTIME DESTINATION ${SUDODEM_EXEC_PATH})
-
-  install(FILES
-    $<TARGET_RUNTIME_DLLS:sudodem3d>
-    $<TARGET_RUNTIME_DLLS:sudodem>
-    DESTINATION ${SUDODEM_EXEC_PATH}
-  )
-
-  get_target_property(_zlib_lib ZLIB::ZLIB IMPORTED_LOCATION_RELEASE)
-  get_filename_component(_zlib_libdir "${_zlib_lib}" DIRECTORY)
-  find_file(ZLIB_DLL
-          NAMES zlib.dll
-          PATHS
-              "${_zlib_libdir}/../bin"
-              "${_zlib_libdir}"
-          NO_DEFAULT_PATH
-      )
-  install(FILES "${ZLIB_DLL}" DESTINATION ${SUDODEM_EXEC_PATH})
-
-  get_target_property(_bzip2_lib BZip2::BZip2 IMPORTED_LOCATION_RELEASE)
-  get_filename_component(_bzip2_libdir "${_bzip2_lib}" DIRECTORY)
-  find_file(BZIP2_DLL
-          NAMES libbz2.dll
-          PATHS
-              "${_bzip2_libdir}/../bin"
-              "${_bzip2_libdir}"
-          NO_DEFAULT_PATH
-      )
-
-  install(FILES "${BZIP2_DLL}" DESTINATION ${SUDODEM_EXEC_PATH})
-
-  get_target_property(_glut_lib FreeGLUT::freeglut IMPORTED_LOCATION_RELEASE)
-  get_filename_component(_glut_libdir "${_glut_lib}" DIRECTORY)
-  find_file(GLUT_DLL
-          NAMES freeglut.dll
-          PATHS
-              "${_glut_libdir}/../bin"
-              "${_glut_libdir}/../"
-              "${_glut_libdir}"
-          NO_DEFAULT_PATH
-      )
-
-  install(FILES "${GLUT_DLL}" DESTINATION ${SUDODEM_EXEC_PATH})
-
+  INSTALL(TARGETS sudodem3d RUNTIME DESTINATION ${SUDODEM_EXEC_PATH}) 
 else(WIN32)
   INSTALL(TARGETS sudodem DESTINATION ${SUDODEM_LIB_PATH})
   INSTALL(TARGETS sudodem3d DESTINATION ${SUDODEM_EXEC_PATH})
 endif(WIN32)
+
+if(WIN32)
+  file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/../minieigen/lib" _minieigen_lib_dir)
+  file(TO_NATIVE_PATH "${SUDODEM_PY_PATH}" _sudodem_py_path)
+  add_custom_target(minieigen_install
+      COMMENT "Copy minieigen if present"
+      COMMAND powershell -NoProfile -ExecutionPolicy Bypass -Command
+          "$files = Get-ChildItem -Path '${_minieigen_lib_dir}' -Filter 'minieigen*' -ErrorAction SilentlyContinue; if ($files) { Copy-Item -Path $files.FullName -Destination '${_sudodem_py_path}' -Force -ErrorAction SilentlyContinue }"
+      DEPENDS install
+    VERBATIM
+  )
+
+else()
+  add_custom_target(minieigen_install
+    COMMENT "Copy minieigen if present"
+    COMMAND sh -c "set -- ${CMAKE_SOURCE_DIR}/../minieigen/lib/minieigen*; [ -e \"$$1\" ] && cp -f ${CMAKE_SOURCE_DIR}/../minieigen/lib/minieigen* \"${SUDODEM_PY_PATH}/\" || true"
+    DEPENDS install
+    VERBATIM
+  )
+endif()
+
+if(WIN32 AND BUILD_STANDALONE_WIN)
+
+  set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
+  set(CMAKE_INSTALL_OPENMP_LIBRARIES TRUE)
+
+  include(InstallRequiredSystemLibraries)
+  set(PACK_WIN_RUNTIME_DLLS "${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS}" CACHE INTERNAL "MSVC/OpenMP runtime DLLs to copy into the Windows package")
+
+  set(PACK_WIN_VCRUNTIME_DLLS "")
+  set(PACK_WIN_VCOMP_DLLS "")
+  
+  foreach(_dll IN LISTS PACK_WIN_RUNTIME_DLLS)
+      get_filename_component(_dll_name "${_dll}" NAME)
+      string(TOLOWER "${_dll_name}" _dll_name_lc)
+      message(STATUS "Pack-VC RUNTIME DLLs: ${_dll_name_lc}")
+      if(_dll_name_lc MATCHES "^vcruntime[0-9_]*\\.dll$")
+          list(APPEND PACK_WIN_VCRUNTIME_DLLS "${_dll}")
+      endif()
+  endforeach()
+
+  if(OpenMP_CXX_FOUND)
+    if(DEFINED MSVC_OPENMP_DIR AND EXISTS "${MSVC_OPENMP_DIR}")
+        file(GLOB PACK_WIN_OPENMP_DLLS "${MSVC_OPENMP_DIR}/vcomp*.dll")
+
+        if(PACK_WIN_OPENMP_DLLS)
+            message(STATUS "Pack-OpenMP DLL: ${PACK_WIN_OPENMP_DLLS}")
+            foreach(_dll IN LISTS PACK_WIN_OPENMP_DLLS)
+              if(EXISTS "${_dll}")
+                  list(APPEND PACK_WIN_VCOMP_DLLS "${_dll}")
+              else()
+                  message(WARNING "OpenMP DLL listed by CMake does not exist: ${_dll}")
+              endif()
+            endforeach()
+        else()
+            message(WARNING "MSVC_OPENMP_DIR exists, but no vcomp*.dll was found in it: ${MSVC_OPENMP_DIR}")
+        endif()
+    else()
+        message(WARNING "MSVC_OPENMP_DIR is not defined or does not exist.")
+    endif()
+  endif()
+
+  set(_pack_win_copy_cmds)
+  foreach(_dll IN LISTS PACK_WIN_VCRUNTIME_DLLS)
+    if(EXISTS "${_dll}")
+        list(APPEND _pack_win_copy_cmds
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_dll}" "${SUDODEM_EXEC_PATH}")
+    else()
+        message(WARNING "Runtime DLL listed by CMake does not exist: ${_dll}")
+    endif()
+  endforeach()
+  foreach(_dll IN LISTS PACK_WIN_VCOMP_DLLS)
+    if(EXISTS "${_dll}")
+        list(APPEND _pack_win_copy_cmds
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_dll}" "${SUDODEM_EXEC_PATH}")
+    else()
+        message(WARNING "OpenMP DLL listed by CMake does not exist: ${_dll}")
+    endif()
+  endforeach()
+   
+  add_custom_target(pack_win
+    COMMENT "Windows package -> Creating standalone program at install prefix: ${CMAKE_INSTALL_PREFIX}"
+
+    # Step 1: qt pack
+    COMMAND windeployqt --release --no-translations --dir "${SUDODEM_EXEC_PATH}" "${SUDODEM_EXEC_PATH}/sudodem3d.exe"
+
+    # Step 2: Copy non-qt C++ DLLs
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CONDA_PREFIX_CMAKE}/Library/bin/zlib.dll" "${SUDODEM_EXEC_PATH}/"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CONDA_PREFIX_CMAKE}/Library/bin/libbz2.dll" "${SUDODEM_EXEC_PATH}/"
+
+    # Step 3: MSVC runtime and OpenMP (from compiler redist)
+    ${_pack_win_copy_cmds}
+
+    DEPENDS install
+  )
+else()
+  add_custom_target(pack_win
+        COMMAND ${CMAKE_COMMAND} -E echo "Windows packing disabled!"
+        DEPENDS install
+    )
+
+endif()
 
 #===========================================================
 MESSAGE(STATUS "===========================================================")

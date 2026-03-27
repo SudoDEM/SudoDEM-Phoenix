@@ -92,9 +92,9 @@ IF(${ENABLE_GUI})
   ENDIF()
 
   if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    SET_TARGET_PROPERTIES(_GLViewer_core PROPERTIES INSTALL_RPATH "@loader_path;@loader_path/../../../;@loader_path/../../../../3rdlibs;$ENV{Qt6_ROOT}/lib;${Python_RUNTIME_LIBRARY_DIRS};")
+    SET_TARGET_PROPERTIES(_GLViewer_core PROPERTIES INSTALL_RPATH "@loader_path;@loader_path/../../../;@loader_path/../../../../3rdlibs;${Qt6_ROOT_CMAKE}/lib;${Python_RUNTIME_LIBRARY_DIRS};")
   elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    SET_TARGET_PROPERTIES(_GLViewer_core PROPERTIES INSTALL_RPATH "$ORIGIN;$ORIGIN/../../../;$ORIGIN/../../../../3rdlibs;$ENV{Qt6_ROOT}/lib;${Python_RUNTIME_LIBRARY_DIRS};")
+    SET_TARGET_PROPERTIES(_GLViewer_core PROPERTIES INSTALL_RPATH "$ORIGIN;$ORIGIN/../../../;$ORIGIN/../../../../3rdlibs;${Qt6_ROOT_CMAKE}/lib;${Python_RUNTIME_LIBRARY_DIRS};")
   endif()
 
 
@@ -121,9 +121,9 @@ IF(${ENABLE_GUI})
     TARGET_COMPILE_DEFINITIONS(_GLViewer PRIVATE NOMINMAX QGLVIEWER_STATIC)
     set_target_properties(_GLViewer PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}")
   elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    set_target_properties(_GLViewer PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}" INSTALL_RPATH "$ORIGIN;$ORIGIN/../../../;$ENV{Qt6_ROOT}/lib;${Python_RUNTIME_LIBRARY_DIRS};")
+    set_target_properties(_GLViewer PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}" INSTALL_RPATH "$ORIGIN;$ORIGIN/../../../;${Qt6_ROOT_CMAKE}/lib;${Python_RUNTIME_LIBRARY_DIRS};")
   elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    set_target_properties(_GLViewer PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}" INSTALL_RPATH "@loader_path;@loader_path/../../../;$ENV{Qt6_ROOT}/lib;${Python_RUNTIME_LIBRARY_DIRS};")
+    set_target_properties(_GLViewer PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}" INSTALL_RPATH "@loader_path;@loader_path/../../../;${Qt6_ROOT_CMAKE}/lib;${Python_RUNTIME_LIBRARY_DIRS};")
   endif()
 
   TARGET_LINK_LIBRARIES(_GLViewer PRIVATE _GLViewer_core pybind11::module)

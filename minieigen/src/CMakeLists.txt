@@ -22,11 +22,11 @@ SET_TARGET_PROPERTIES(minieigen PROPERTIES
     PREFIX "${PYTHON_MODULE_PREFIX}"
     # Ensure the suffix matches what Python expects (e.g., .so or .pyd)
     SUFFIX "${PYTHON_MODULE_EXTENSION}"
-    INSTALL_RPATH "${Python3_RUNTIME_LIBRARY_DIRS}"
+    INSTALL_RPATH "${Python_RUNTIME_LIBRARY_DIRS}"
 )
 
-# Fallback: explicitly set suffix if Python3_SOSUFFIX is not set
-if(NOT Python3_SOSUFFIX)
+# Fallback: explicitly set suffix if Python_SOSUFFIX is not set
+if(NOT Python_SOSUFFIX)
     if(APPLE)
         set_target_properties(minieigen PROPERTIES SUFFIX ".so")
     elseif(WIN32)
@@ -36,7 +36,7 @@ endif()
 
 # 4. Link with Python (pybind11 is header-only)
 TARGET_LINK_LIBRARIES(minieigen PRIVATE
-    Python3::Module
+    Python::Module
 )
 
 # 5. Target Include Directories

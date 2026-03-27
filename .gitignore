@@ -41,3 +41,6 @@
 *.dwo
 
 .DS_Store
+
+!thirdparty/freeglut_win64/bin/freeglut.dll
+!thirdparty/freeglut_win64/lib/freeglut.lib

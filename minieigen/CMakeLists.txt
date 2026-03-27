@@ -1,5 +1,5 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 3.16)
 PROJECT(minieigen CXX)
-CMAKE_MINIMUM_REQUIRED(VERSION 3.12)
 
 SET(CMAKE_CXX_STANDARD 17)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -18,8 +18,16 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/pybind11" "${CMAKE_CURRENT_BINARY_DIR}/pybind11")
 endif()
 
+file(TO_CMAKE_PATH "$ENV{CONDA_PREFIX}" CONDA_PREFIX_CMAKE)
+list(PREPEND CMAKE_PREFIX_PATH "${CONDA_PREFIX_CMAKE}")
+MESSAGE(STATUS "Miniconda env: ${CONDA_PREFIX_CMAKE}")
+
 # 1. Find the active Python
-find_package(Python3 3.13 REQUIRED COMPONENTS Interpreter Development Development.Module)
+if(WIN32)
+  set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/python.exe" CACHE FILEPATH "Python executable" FORCE)
+endif()
+
+find_package(Python 3.13 REQUIRED COMPONENTS Interpreter Development Development.Module)
 
 # 2. Set pybind11 path (header-only library)
 SET(PYBIND11_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/pybind11/include" CACHE PATH "Path to pybind11")
@@ -48,12 +56,12 @@ if(NOT EIGEN3_INCLUDE_DIR)
 endif()
 
 # 4. Output configurations for debugging
-MESSAGE(STATUS "Found Python: ${Python3_VERSION}")
+MESSAGE(STATUS "Found Python Header: ${Python_INCLUDE_DIRS}")
 MESSAGE(STATUS "Found pybind11: ${PYBIND11_INCLUDE_DIR}")
 MESSAGE(STATUS "Found Eigen: ${EIGEN3_INCLUDE_DIR}")
 
 # 5. Include directories and build
-INCLUDE_DIRECTORIES(${Python3_INCLUDE_DIRS})
+INCLUDE_DIRECTORIES(${Python_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${PYBIND11_INCLUDE_DIR})
 INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIR})
 
