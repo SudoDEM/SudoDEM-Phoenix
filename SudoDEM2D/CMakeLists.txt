@@ -10,7 +10,18 @@ if(POLICY CMP0177)
  cmake_policy(SET CMP0177 NEW)
 endif()
 
+file(TO_CMAKE_PATH "$ENV{CONDA_PREFIX}" CONDA_PREFIX_CMAKE)
+list(PREPEND CMAKE_PREFIX_PATH "${CONDA_PREFIX_CMAKE}")
+MESSAGE(STATUS "Miniconda env: ${CONDA_PREFIX_CMAKE}")
+
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cMake")
+
+if(WIN32)
+  set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/python.exe" CACHE FILEPATH "Python executable" FORCE)
+else()
+  set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/bin/python" CACHE FILEPATH "Python executable" FORCE)
+endif()
+
 find_package(Python 3.13 REQUIRED COMPONENTS Interpreter Development.Module Development.Embed)
 
 INCLUDE(GetVersion)
@@ -37,9 +48,6 @@ IF ("${CMAKE_CXX_COMPILER} ${CMAKE_CXX_COMPILER_ARG1}" MATCHES ".*clang")
 ENDIF()
 
 #===========================================================
-file(TO_CMAKE_PATH "$ENV{CONDA_PREFIX}" CONDA_PREFIX_CMAKE)
-list(PREPEND CMAKE_PREFIX_PATH "${CONDA_PREFIX_CMAKE}")
-MESSAGE(STATUS "Miniconda env: ${CONDA_PREFIX_CMAKE}")
 
 SET(CMAKE_CXX_STANDARD 17)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -386,15 +394,15 @@ ENDIF()
 ADD_EXECUTABLE(sudodem2d ${CMAKE_CURRENT_SOURCE_DIR}/core/main/sudodem.cpp)
 
 if(BUILD_STANDALONE_WIN)
-  TARGET_COMPILE_DEFINITIONS(sudodem3d PRIVATE BUILD_STANDALONE_WIN)
+  TARGET_COMPILE_DEFINITIONS(sudodem2d PRIVATE BUILD_STANDALONE_WIN)
 endif()
 
 if(BUILD_STANDALONE_LINUX)
-  TARGET_COMPILE_DEFINITIONS(sudodem3d PRIVATE BUILD_STANDALONE_LINUX)
+  TARGET_COMPILE_DEFINITIONS(sudodem2d PRIVATE BUILD_STANDALONE_LINUX)
 endif()
 
 if(BUILD_STANDALONE_MACOS)
-  TARGET_COMPILE_DEFINITIONS(sudodem3d PRIVATE BUILD_STANDALONE_MACOS)
+  TARGET_COMPILE_DEFINITIONS(sudodem2d PRIVATE BUILD_STANDALONE_MACOS)
 endif()
 
 if(QT_VERSION_MAJOR EQUAL 6)
@@ -501,6 +509,27 @@ else(WIN32)
   INSTALL(TARGETS sudodem2d DESTINATION ${SUDODEM_EXEC_PATH})
 endif(WIN32)
 
+#===========================================================
+MESSAGE(STATUS "===========================================================")
+MESSAGE(STATUS "SudoDEM configured with following features:${CONFIGURED_FEATS}")
+MESSAGE(STATUS "Disabled features:${DISABLED_FEATS}")
+IF (DEBUG)
+ MESSAGE(STATUS "Debug build")
+ SET (debugbuild " (debug build)")
+ELSE (DEBUG)
+ MESSAGE(STATUS "Optimized build")
+ENDIF (DEBUG)
+IF (CHUNKSIZE)
+ MESSAGE(STATUS "CHUNKSIZE is set to " ${CHUNKSIZE})
+ENDIF (CHUNKSIZE)
+MESSAGE(STATUS "===========================================================")
+#===========================================================
+
+get_target_property(_sudodem_links sudodem LINK_LIBRARIES)
+message(STATUS "sudodem LINK_LIBRARIES = ${_sudodem_links}")
+
+#===========================================================
+
 if(WIN32)
   file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/../minieigen/lib" _minieigen_lib_dir)
   file(TO_NATIVE_PATH "${SUDODEM_PY_PATH}" _sudodem_py_path)
@@ -508,18 +537,18 @@ if(WIN32)
       COMMENT "Copy minieigen if present"
       COMMAND powershell -NoProfile -ExecutionPolicy Bypass -Command
           "$files = Get-ChildItem -Path '${_minieigen_lib_dir}' -Filter 'minieigen*' -ErrorAction SilentlyContinue; if ($files) { Copy-Item -Path $files.FullName -Destination '${_sudodem_py_path}' -Force -ErrorAction SilentlyContinue }"
-      DEPENDS install
     VERBATIM
   )
 
-else()
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   add_custom_target(minieigen_install
-    COMMENT "Copy minieigen if present"
-    COMMAND sh -c "set -- ${CMAKE_SOURCE_DIR}/../minieigen/lib/minieigen*; [ -e \"$$1\" ] && cp -f ${CMAKE_SOURCE_DIR}/../minieigen/lib/minieigen* \"${SUDODEM_PY_PATH}/\" || true"
-    DEPENDS install
+    COMMAND sh -c "set -- \"${CMAKE_SOURCE_DIR}/../minieigen/lib\"/minieigen*; echo first=$1; echo dst='${SUDODEM_PY_PATH}'; [ -e \"$1\" ] && mkdir -p \"${SUDODEM_PY_PATH}\" && cp -fv \"${CMAKE_SOURCE_DIR}/../minieigen/lib\"/minieigen* \"${SUDODEM_PY_PATH}/\" || true"
     VERBATIM
-  )
+    USES_TERMINAL
+)
 endif()
+
+#===========================================================
 
 if(WIN32 AND BUILD_STANDALONE_WIN)
 
@@ -584,7 +613,7 @@ if(WIN32 AND BUILD_STANDALONE_WIN)
     COMMENT "Windows package -> Creating standalone program at install prefix: ${CMAKE_INSTALL_PREFIX}"
 
     # Step 1: qt pack
-    COMMAND windeployqt --release --no-translations --dir "${SUDODEM_EXEC_PATH}" "${SUDODEM_EXEC_PATH}/sudodem3d.exe"
+    COMMAND windeployqt --release --no-translations --dir "${SUDODEM_EXEC_PATH}" "${SUDODEM_EXEC_PATH}/sudodem2d.exe"
 
     # Step 2: Copy non-qt C++ DLLs
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CONDA_PREFIX_CMAKE}/Library/bin/zlib.dll" "${SUDODEM_EXEC_PATH}/"
@@ -593,28 +622,119 @@ if(WIN32 AND BUILD_STANDALONE_WIN)
     # Step 3: MSVC runtime and OpenMP (from compiler redist)
     ${_pack_win_copy_cmds}
 
-    DEPENDS install
   )
-else()
-  add_custom_target(pack_win
-        COMMAND ${CMAKE_COMMAND} -E echo "Windows packing disabled!"
-        DEPENDS install
+
+
+#======================= LINUX PACK =======================#
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_STANDALONE_LINUX)
+
+  if(ENABLE_GUI AND Qt6_FOUND)
+
+      qt_generate_deploy_script(
+            TARGET sudodem2d
+            OUTPUT_SCRIPT deploy_script
+            CONTENT "
+
+        include(\"\${QT_DEPLOY_SUPPORT}\")
+
+        qt_deploy_runtime_dependencies(
+            EXECUTABLE \"bin/sudodem2d\"
+            BIN_DIR \"bin\"
+            LIB_DIR \"lib/3rdlibs\"
+            NO_TRANSLATIONS
+        )
+        "
+        )
+  endif()
+
+  # non-Qt
+
+  set(BZIP2_LIB_PATH "${BZIP2_LIBRARIES}")
+  file(REAL_PATH "${BZIP2_LIB_PATH}" BZIP2_REAL_LIB_PATH)
+  get_filename_component(BZIP2_REAL_LIB_NAME "${BZIP2_REAL_LIB_PATH}" NAME)
+
+  set(ZLIB_LIB_PATH "${ZLIB_LIBRARIES}")
+  file(REAL_PATH "${ZLIB_LIB_PATH}" ZLIB_REAL_LIB_PATH)
+  get_filename_component(ZLIB_REAL_LIB_NAME "${ZLIB_REAL_LIB_PATH}" NAME)
+
+  # OpenGL
+  get_target_property(OPENGL_LIB_PATH OpenGL::OpenGL IMPORTED_LOCATION)
+  get_target_property(GLU_LIB_PATH    OpenGL::GLU IMPORTED_LOCATION)
+  get_target_property(GLUT_LIB_PATH   GLUT::GLUT IMPORTED_LOCATION)
+
+  file(REAL_PATH "${OPENGL_LIB_PATH}" OPENGL_REAL_LIB_PATH)
+  file(REAL_PATH "${GLU_LIB_PATH}"    GLU_REAL_LIB_PATH)
+  file(REAL_PATH "${GLUT_LIB_PATH}"   GLUT_REAL_LIB_PATH)
+
+  get_filename_component(OPENGL_REAL_LIB_NAME "${OPENGL_REAL_LIB_PATH}" NAME)
+  get_filename_component(GLU_REAL_LIB_NAME    "${GLU_REAL_LIB_PATH}" NAME)
+  get_filename_component(GLUT_REAL_LIB_NAME   "${GLUT_REAL_LIB_PATH}" NAME)
+
+  # OpenMP
+  set(OPENMP_REAL_LIBS "")
+  foreach(_lib ${OpenMP_CXX_LIBRARIES})
+    if(EXISTS "${_lib}")
+      get_filename_component(_ext "${_lib}" EXT)
+      if(_ext STREQUAL ".so" OR _lib MATCHES "\\.so\\.")
+        file(REAL_PATH "${_lib}" _real_lib)
+        list(APPEND OPENMP_REAL_LIBS "${_real_lib}")
+        message(STATUS "Pack OpenMP runtime: ${_real_lib}")
+      endif()
+    endif()
+  endforeach()
+  list(REMOVE_DUPLICATES OPENMP_REAL_LIBS)
+
+  set(PACK_3RDLIB_DIR "${CMAKE_INSTALL_PREFIX}/lib/3rdlibs")
+
+  add_custom_target(pack_linux
+    COMMENT "Linux package -> standalone program at install prefix: ${CMAKE_INSTALL_PREFIX}"
+
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/plugins/platforms"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${PACK_3RDLIB_DIR}"
+
+    # Qt: only if generated
+    COMMAND ${CMAKE_COMMAND} -E echo "Running Linux pack target"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${Qt6_ROOT_CMAKE}/plugins/platforms/libqxcb.so"
+            "${CMAKE_INSTALL_PREFIX}/plugins/platforms/libqxcb.so"
+    USES_TERMINAL
+  )
+
+  if(ENABLE_GUI AND Qt6_FOUND)
+    add_custom_command(TARGET pack_linux POST_BUILD
+      COMMAND ${CMAKE_COMMAND}
+            -DQT_DEPLOY_PREFIX=${CMAKE_INSTALL_PREFIX}
+            -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+            -P "${deploy_script}"
+      USES_TERMINAL
     )
+  endif()
+
+  add_custom_command(TARGET pack_linux POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${BZIP2_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/${BZIP2_REAL_LIB_NAME}"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${ZLIB_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/${ZLIB_REAL_LIB_NAME}"
+
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${BZIP2_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libbz2.so"
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${ZLIB_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libz.so"
+
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${GLU_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/${GLU_REAL_LIB_NAME}"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${GLUT_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/${GLUT_REAL_LIB_NAME}"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${OPENGL_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/${OPENGL_REAL_LIB_NAME}"
+  )
+
+  foreach(_lib IN LISTS OPENMP_REAL_LIBS)
+    get_filename_component(_name "${_lib}" NAME)
+    add_custom_command(TARGET pack_linux POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+              "${_lib}" "${PACK_3RDLIB_DIR}/${_name}"
+    )
+  endforeach()
 
 endif()
-
-#===========================================================
-MESSAGE(STATUS "===========================================================")
-MESSAGE(STATUS "SudoDEM configured with following features:${CONFIGURED_FEATS}")
-MESSAGE(STATUS "Disabled features:${DISABLED_FEATS}")
-IF (DEBUG)
- MESSAGE(STATUS "Debug build")
- SET (debugbuild " (debug build)")
-ELSE (DEBUG)
- MESSAGE(STATUS "Optimized build")
-ENDIF (DEBUG)
-IF (CHUNKSIZE)
- MESSAGE(STATUS "CHUNKSIZE is set to " ${CHUNKSIZE})
-ENDIF (CHUNKSIZE)
-MESSAGE(STATUS "===========================================================")
-#===========================================================

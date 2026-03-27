@@ -464,7 +464,16 @@ int main( int argc, char **argv )
         (defined(__linux__) && BUILD_STANDALONE_LINUX) || \
         (defined(__APPLE__) && BUILD_STANDALONE_MACOS)
 
-      QCoreApplication::addLibraryPath(QString::fromStdWString(exePath.wstring()));
+      std::filesystem::path qtPluginPath;
+      
+      #if defined(_WIN32)
+          qtPluginPath = exePath.parent_path().parent_path();
+      #else
+          qtPluginPath = exePath.parent_path().parent_path() / "plugins";
+      #endif
+
+      QCoreApplication::addLibraryPath(QString::fromStdWString(qtPluginPath.wstring()));
+      
     #else
       const char* qtRootEnv = std::getenv("Qt6_ROOT");
 

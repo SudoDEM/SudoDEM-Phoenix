@@ -32,7 +32,7 @@ jobs:
         #     python: "3.12"
         #   - os: ubuntu-24.04
         #     python: "3.10"
-        os: [windows-latest]
+        os: [ubuntu-24.04, windows-latest]
         python: ["3.13"]
 
     steps:
@@ -85,9 +85,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y \
           build-essential cmake \
-          freeglut3-dev libglib2.0-dev \
-          qt6-base-dev qt6-base-dev-tools \
-          libgl1-mesa-dev libglu1-mesa-dev libxcb-cursor0
+          freeglut3-dev libgl1-mesa-dev libglu1-mesa-dev libxcb-cursor0
 
     - name: Install non-Qt system dependencies on macOS
       if: runner.os == 'macOS'
@@ -96,8 +94,7 @@ jobs:
         brew update
         brew install cmake glib libomp
 
-    - name: Install Qt on Win/macOS
-      if: runner.os != 'Linux'
+    - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
         version: '6.9.3'
@@ -111,6 +108,13 @@ jobs:
         "Qt6_ROOT=$qtRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         "PATH=$qtRoot\bin;$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         Write-Host "Qt6_ROOT set to $qtRoot"
+
+    - name: Set Qt6_ROOT/OpenMP_ROOT on Linux
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        echo "Qt6_ROOT=$QT_ROOT_DIR" >> "$GITHUB_ENV"
+        echo "CMAKE_PREFIX_PATH=$QT_ROOT_DIR" >> "$GITHUB_ENV"
 
     - name: Set Qt6_ROOT/OpenMP_ROOT on macOS
       if: runner.os == 'macOS'
@@ -142,8 +146,8 @@ jobs:
         cmake --build . --config Release --parallel 4
         cmake --install . --config Release
 
-    - name: Build SudoDEM2D on Linux/macOS
-      if: runner.os != 'Windows'
+    - name: Build SudoDEM2D on Linux
+      if: runner.os == 'Linux'
       shell: bash -el {0}
       run: |
         mkdir -p build2d
@@ -151,6 +155,19 @@ jobs:
         cmake ../SudoDEM2D
         make -j4
         make install
+        make minieigen_install
+        make pack_linux
+
+    - name: Build SudoDEM2D on macOS
+      if: runner.os == 'macOS'
+      shell: bash -el {0}
+      run: |
+        mkdir -p build2d
+        cd build2d
+        cmake ../SudoDEM2D
+        make -j4
+        make install
+        make minieigen_install
 
     - name: Build SudoDEM2D on Windows
       if: runner.os == 'Windows'
