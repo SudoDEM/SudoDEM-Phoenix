@@ -23,7 +23,11 @@ list(PREPEND CMAKE_PREFIX_PATH "${CONDA_PREFIX_CMAKE}")
 MESSAGE(STATUS "Miniconda env: ${CONDA_PREFIX_CMAKE}")
 
 # 1. Find the active Python
-set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/python.exe" CACHE FILEPATH "Python executable" FORCE)
+if(WIN32)
+  set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/python.exe" CACHE FILEPATH "Python executable" FORCE)
+else()
+  set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/bin/python" CACHE FILEPATH "Python executable" FORCE)
+endif()
 find_package(Python 3.13 REQUIRED COMPONENTS Interpreter Development Development.Module)
 
 # 2. Set pybind11 path (header-only library)
