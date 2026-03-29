@@ -325,12 +325,60 @@ int main( int argc, char **argv )
   wchar_t* program = Py_DecodeLocale(argv[0], NULL);
   Py_SetProgramName(program);
 
-  //CH_BUG_FIX
-  // std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-  // std::string testname = converter.to_bytes(program);
-  // std::cout<<"Program name "<<testname<<std::endl;
+  #if (defined(__APPLE__) && BUILD_STANDALONE_MACOS)
+    std::filesystem::path this_exe = std::filesystem::weakly_canonical(std::filesystem::path(argv[0]));
+    std::filesystem::path this_macos_dir = this_exe.parent_path();
+    std::filesystem::path this_content_dir = this_macos_dir.parent_path();
+    std::filesystem::path this_frame_dir = this_content_dir / "Frameworks";
+    std::filesystem::path this_pyhome = this_content_dir / "Resources" / "python";
+    std::filesystem::path this_pylib = this_pyhome / "lib" / "python3.13";
+    std::filesystem::path this_py_dynlib = this_pylib / "lib-dynload";
+    std::filesystem::path this_py_sitepkg = this_pylib / "site-packages";
+    std::filesystem::path this_py_sudodempkg = this_content_dir / "Resources" / "sudodempython";
+    
+    PyConfig config;
+    PyConfig_InitPythonConfig(&config);
 
-  #if _WIN32
+
+    config.isolated = 1;
+    config.use_environment = 0;
+    config.site_import = 1;
+    config.module_search_paths_set = 1;
+
+    PyStatus st;
+
+    std::string s1 = this_exe.string();
+    std::wstring ws1(s1.begin(), s1.end());
+    st = PyConfig_SetString(&config, &config.program_name, ws1.c_str());
+
+    std::string s2 = this_pyhome.string();
+    std::wstring ws2(s2.begin(), s2.end());
+    st = PyConfig_SetString(&config, &config.home, ws2.c_str());
+
+    std::string s3 = this_pylib.string();
+    std::wstring ws3(s3.begin(), s3.end());
+    st = PyWideStringList_Append(&config.module_search_paths, ws3.c_str());
+
+    std::string s4 = this_py_dynlib.string();
+    std::wstring ws4(s4.begin(), s4.end());
+    st = PyWideStringList_Append(&config.module_search_paths, ws4.c_str());
+
+    std::string s5 = this_py_sitepkg.string();
+    std::wstring ws5(s5.begin(), s5.end());
+    st = PyWideStringList_Append(&config.module_search_paths, ws5.c_str());
+
+    std::string s6 = this_py_sudodempkg.string();
+    std::wstring ws6(s6.begin(), s6.end());
+    st = PyWideStringList_Append(&config.module_search_paths, ws6.c_str());
+    
+    
+    st = Py_InitializeFromConfig(&config);
+    PyEval_InitThreads(); // Initialize threading support for Python
+
+
+    PyConfig_Clear(&config);
+
+  #elif _WIN32
     std::wstring py_home_forsudodem = get_python_home_from_python_exe();
 
     if (!std::filesystem::exists(py_home_forsudodem))
@@ -364,15 +412,11 @@ int main( int argc, char **argv )
 
     std::cout<<"path "<<exePathNorm.parent_path()<<std::endl;
 
+  #else
+    Py_Initialize();
+    PyEval_InitThreads(); // Initialize threading support for Python
+
   #endif
-
-
-
-  Py_Initialize();
-
-  PyEval_InitThreads(); // Initialize threading support for Python
-  PyRun_SimpleString("import sys");
-
 
   std::string cmd = "sysArgv =[";
   for(int i=0;i<argc;i++)
@@ -393,8 +437,6 @@ int main( int argc, char **argv )
     cmd = cmd +"'"+thisarg+"',";
   }
   cmd +="]";
-
-  std::cout<<"cmd str: "<<cmd<<std::endl;
 
   PyRun_SimpleString(cmd.c_str());
 
@@ -468,6 +510,8 @@ int main( int argc, char **argv )
       
       #if defined(_WIN32)
           qtPluginPath = exePath.parent_path().parent_path();
+      #elif defined(__APPLE__)
+          qtPluginPath = exePath.parent_path().parent_path() / "PlugIns";
       #else
           qtPluginPath = exePath.parent_path().parent_path() / "plugins";
       #endif

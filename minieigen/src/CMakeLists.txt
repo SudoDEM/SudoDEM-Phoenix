@@ -20,23 +20,14 @@ ADD_LIBRARY(minieigen MODULE ${SRC_minieigen} ${DCSRC})
 # 3. Target properties
 SET_TARGET_PROPERTIES(minieigen PROPERTIES
     PREFIX "${PYTHON_MODULE_PREFIX}"
-    # Ensure the suffix matches what Python expects (e.g., .so or .pyd)
     SUFFIX "${PYTHON_MODULE_EXTENSION}"
-    INSTALL_RPATH "${Python_RUNTIME_LIBRARY_DIRS}"
+    INSTALL_RPATH "@loader_path;@loader_path/../;"
 )
 
-# Fallback: explicitly set suffix if Python_SOSUFFIX is not set
-if(NOT Python_SOSUFFIX)
-    if(APPLE)
-        set_target_properties(minieigen PROPERTIES SUFFIX ".so")
-    elseif(WIN32)
-        set_target_properties(minieigen PROPERTIES SUFFIX ".pyd")
-    endif()
-endif()
 
 # 4. Link with Python (pybind11 is header-only)
 TARGET_LINK_LIBRARIES(minieigen PRIVATE
-    Python::Module
+    pybind11::module
 )
 
 # 5. Target Include Directories

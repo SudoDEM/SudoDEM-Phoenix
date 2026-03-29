@@ -5,6 +5,23 @@ set(BUILD_STANDALONE_WIN ON CACHE BOOL "Standalone program WIN")
 set(BUILD_STANDALONE_LINUX ON CACHE BOOL "Standalone program LINUX")
 set(BUILD_STANDALONE_MACOS ON CACHE BOOL "Standalone program MACOS")
 
+SET(CMAKE_SKIP_BUILD_RPATH TRUE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+# Set up user-defined version, mandatory for standalone build
+set(USER_PYTHON_ROOT "${CMAKE_SOURCE_DIR}/../../mypython")
+set(USER_BZIP2_ROOT "${CMAKE_SOURCE_DIR}/../../bzip2")
+set(USER_LIBZ_ROOT "${CMAKE_SOURCE_DIR}/../../zlib")
+
+if(
+  (WIN32 AND BUILD_STANDALONE_WIN) OR
+  (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_STANDALONE_LINUX) OR
+  (CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND BUILD_STANDALONE_MACOS)
+)
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
+endif()
+
 # Set CMP0177 policy to NEW to normalize install() DESTINATION paths
 if(POLICY CMP0177)
  cmake_policy(SET CMP0177 NEW)
@@ -16,8 +33,18 @@ MESSAGE(STATUS "Miniconda env: ${CONDA_PREFIX_CMAKE}")
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cMake")
 
-set(Python_ROOT_DIR "${CONDA_PREFIX_CMAKE}")
-set(Python3_ROOT_DIR "${CONDA_PREFIX_CMAKE}")
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  if(BUILD_STANDALONE_MACOS)
+    set(Python_ROOT_DIR "${USER_PYTHON_ROOT}")
+    set(Python3_ROOT_DIR "${USER_PYTHON_ROOT}")
+  else()
+    set(Python_ROOT_DIR "${CONDA_PREFIX_CMAKE}")
+    set(Python3_ROOT_DIR "${CONDA_PREFIX_CMAKE}")
+  endif()
+else()
+  set(Python_ROOT_DIR "${CONDA_PREFIX_CMAKE}")
+  set(Python3_ROOT_DIR "${CONDA_PREFIX_CMAKE}")
+endif()
 
 set(Python_FIND_STRATEGY LOCATION)
 set(Python3_FIND_STRATEGY LOCATION)
@@ -25,9 +52,15 @@ set(Python3_FIND_STRATEGY LOCATION)
 set(Python_FIND_VIRTUALENV STANDARD)
 set(Python3_FIND_VIRTUALENV STANDARD)
 
-if(WIN32)
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  if(BUILD_STANDALONE_MACOS)
+    set(Python_EXECUTABLE "${USER_PYTHON_ROOT}/bin/python3" CACHE FILEPATH "Python executable" FORCE)
+  else()
+    set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/bin/python" CACHE FILEPATH "Python executable" FORCE)
+  endif()
+elseif(WIN32)
   set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/python.exe" CACHE FILEPATH "Python executable" FORCE)
-else()
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/bin/python" CACHE FILEPATH "Python executable" FORCE)
 endif()
 
@@ -103,20 +136,29 @@ ENDIF (CMAKE_CXX_FLAGS)
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/cereal/include)
 # Add BZip2 and ZLIB for compression
 
-
-
 if(WIN32)
   set(BZIP2_INCLUDE_DIR "${CONDA_PREFIX_CMAKE}/Library/include")
   set(BZIP2_LIBRARY_RELEASE "${CONDA_PREFIX_CMAKE}/Library/lib/bzip2.lib")
   set(ZLIB_ROOT "${CONDA_PREFIX_CMAKE}/Library")
-else(WIN32)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set(BZIP2_INCLUDE_DIR "${CONDA_PREFIX_CMAKE}/include")
   set(ZLIB_ROOT "${CONDA_PREFIX_CMAKE}")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  if(BUILD_STANDALONE_MACOS)
+    set(BZIP2_INCLUDE_DIR "${USER_BZIP2_ROOT}/include")
+    set(BZIP2_LIBRARY_RELEASE "${USER_BZIP2_ROOT}/lib/libbz2.1.0.8.dylib")
+    set(ZLIB_ROOT "${USER_LIBZ_ROOT}")
+  else()
+    set(BZIP2_INCLUDE_DIR "${CONDA_PREFIX_CMAKE}/include")
+    set(ZLIB_ROOT "${CONDA_PREFIX_CMAKE}")
+  endif()
 endif(WIN32)
-
 
 find_package(BZip2 REQUIRED)
 find_package(ZLIB REQUIRED)
+INCLUDE_DIRECTORIES(${BZIP2_INCLUDE_DIRS})
+INCLUDE_DIRECTORIES(${ZLIB_INCLUDE_DIRS})
+
 MESSAGE(STATUS "BZip2 include dir: " ${BZIP2_INCLUDE_DIRS})
 MESSAGE(STATUS "ZLIB include dir: " ${ZLIB_INCLUDE_DIRS})
 
@@ -129,8 +171,8 @@ MESSAGE(STATUS "Using pybind11 for Python bindings")
 #===========================================================
 # Find NumPy using modern Python module
 find_package(Python REQUIRED COMPONENTS NumPy)
-INCLUDE_DIRECTORIES(${Python_NumPy_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${Python_INCLUDE_DIRS})
+INCLUDE_DIRECTORIES(${Python_NumPy_INCLUDE_DIRS})
 
 #===========================================================
 
@@ -154,9 +196,6 @@ ELSE (NOT VECTORIZE)
  MESSAGE(STATUS "Enable vectorization")
 ENDIF (NOT VECTORIZE)
 
-#===========================================================
-INCLUDE_DIRECTORIES(${BZIP2_INCLUDE_DIRS})
-INCLUDE_DIRECTORIES(${ZLIB_INCLUDE_DIRS})
 
 #===========================================================
 SET(CONFIGURED_FEATS "${CONFIGURED_FEATS} Odeint")
@@ -188,15 +227,17 @@ ADD_DEFINITIONS("-DSUDODEM_ODEINT")
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   if(DEFINED ENV{OpenMP_ROOT} AND NOT "$ENV{OpenMP_ROOT}" STREQUAL "")
       message(STATUS "Env OpenMP_ROOT exists: $ENV{OpenMP_ROOT}")
+      get_filename_component(OpenMP_ROOT_CMAKE "$ENV{OpenMP_ROOT}" REALPATH)
   else()
       message(STATUS "Env OpenMP_ROOT not set, try /opt/homebrew/opt/libomp on macos!")
       set(OpenMP_ROOT "/opt/homebrew/opt/libomp")
+      get_filename_component(OpenMP_ROOT_CMAKE "${OpenMP_ROOT}" REALPATH)
   endif()
 endif()
 
 FIND_PACKAGE(OpenMP)
 IF(OPENMP_FOUND)
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSUDODEM_OPENMP ${OpenMP_CXX_FLAGS}")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSUDODEM_OPENMP")
   MESSAGE(STATUS "Found OpenMP")
   SET(CONFIGURED_FEATS "${CONFIGURED_FEATS} OpenMP")
 ELSE(OPENMP_FOUND)
@@ -300,10 +341,6 @@ SET(SUDODEM_PY_PATH ${SUDODEM_LIB_PATH}/py)
 SET(SUDODEM_DOC_PATH ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/doc/sudodem${SUFFIX})
 SET(SUDODEM_MAN_PATH ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_MANDIR})
 
-SET(CMAKE_SKIP_BUILD_RPATH FALSE)
-SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
-
 
 #===========================================================
 IF(ENABLE_GUI)
@@ -337,6 +374,14 @@ TARGET_LINK_LIBRARIES(qhull)
 if(NOT WIN32)
   INSTALL(TARGETS qhull RUNTIME DESTINATION ${SUDODEM_LIB_PATH})
 ENDIF()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND BUILD_STANDALONE_MACOS)
+    set_target_properties(qhull PROPERTIES
+      MACOSX_RPATH ON
+      INSTALL_NAME_DIR "@rpath"
+    )
+endif()
+
 #===========================================================
 FILE(GLOB VORO_SRC_LIB "lib/voro++/voro++.cc")
 ADD_LIBRARY(voro++ SHARED ${VORO_SRC_LIB})
@@ -350,6 +395,13 @@ ENDIF(WIN32)
 
 SET_TARGET_PROPERTIES(voro++ PROPERTIES PREFIX "")
 TARGET_LINK_LIBRARIES(voro++)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND BUILD_STANDALONE_MACOS)
+    set_target_properties(voro++ PROPERTIES
+      MACOSX_RPATH ON
+      INSTALL_NAME_DIR "@rpath"
+    )
+endif()
 #===========================================================
 
 
@@ -418,48 +470,44 @@ if(QT_VERSION_MAJOR EQUAL 6)
  set_target_properties(sudodem2d PROPERTIES AUTOMOC ON)
 endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-	# Add libomp rpath when OpenMP is enabled
-	if(OPENMP_FOUND)
-		SET_TARGET_PROPERTIES(sudodem2d PROPERTIES INSTALL_RPATH "@loader_path;@loader_path/../lib/;@loader_path/../lib/sudodem;@loader_path/../lib/sudodem/py/sudodem;@loader_path/../lib/3rdlibs;${Python_RUNTIME_LIBRARY_DIRS};${OpenMP_ROOT}/lib")
-	else()
-		SET_TARGET_PROPERTIES(sudodem2d PROPERTIES INSTALL_RPATH "@loader_path;@loader_path/../lib/;@loader_path/../lib/sudodem;@loader_path/../lib/sudodem/py/sudodem;@loader_path/../lib/3rdlibs;${Python_RUNTIME_LIBRARY_DIRS};")
-	endif()
+	SET_TARGET_PROPERTIES(sudodem2d PROPERTIES INSTALL_RPATH "@executable_path;@executable_path/../lib/;@executable_path/../lib/sudodem;@executable_path/../lib/sudodem/py/sudodem;@executable_path/../lib/3rdlibs;")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	SET_TARGET_PROPERTIES(sudodem2d PROPERTIES INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib/;$ORIGIN/../lib/sudodem;$ORIGIN/../lib/3rdlibs;${Python_RUNTIME_LIBRARY_DIRS};")
-else()
-	SET_TARGET_PROPERTIES(sudodem2d PROPERTIES INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib/sudodem/py/sudodem;$ORIGIN/../lib/3rdlibs;")
+	SET_TARGET_PROPERTIES(sudodem2d PROPERTIES INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib/;$ORIGIN/../lib/sudodem;$ORIGIN/../lib/3rdlibs;")
 endif()
 
 ADD_LIBRARY(boot MODULE ${CMAKE_CURRENT_SOURCE_DIR}/core/main/pyboot.cpp)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	SET_TARGET_PROPERTIES(boot PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}" LINK_FLAGS "-Wl,-z,origin,--as-needed" INSTALL_RPATH "$ORIGIN;$ORIGIN/../../;$ORIGIN/../../../;$ORIGIN/../../../3rdlibs;${Python_RUNTIME_LIBRARY_DIRS};")
+	SET_TARGET_PROPERTIES(boot PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}" LINK_FLAGS "-Wl,-z,origin,--as-needed" INSTALL_RPATH "$ORIGIN;$ORIGIN/../../;$ORIGIN/../../../;$ORIGIN/../../../3rdlibs;")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-	SET_TARGET_PROPERTIES(boot PROPERTIES PREFIX "" INSTALL_RPATH "@loader_path;@loader_path/../../;@loader_path/../../../;@loader_path/../../../3rdlibs;${Python_RUNTIME_LIBRARY_DIRS};")
+	SET_TARGET_PROPERTIES(boot PROPERTIES PREFIX "" INSTALL_RPATH "@loader_path;@loader_path/../../;@loader_path/../../../;@loader_path/../../../3rdlibs;")
 elseif(WIN32)
 	set_target_properties(boot PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}")
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	TARGET_LINK_LIBRARIES(sudodem qhull ${Python_LIBRARIES} -lrt pybind11::module BZip2::BZip2 ZLIB::ZLIB ${SUDODEM_GLUT_TARGET} ${OPENGL_LIBRARIES})
+	TARGET_LINK_LIBRARIES(sudodem qhull Python::Python -lrt pybind11::module BZip2::BZip2 ZLIB::ZLIB ${SUDODEM_GLUT_TARGET} ${OPENGL_LIBRARIES})
 else()
 	# macOS and win
 	if(OPENMP_FOUND)
-		TARGET_LINK_LIBRARIES(sudodem qhull ${Python_LIBRARIES} pybind11::module BZip2::BZip2 ZLIB::ZLIB OpenMP::OpenMP_CXX ${SUDODEM_GLUT_TARGET} ${OPENGL_LIBRARIES})
+		TARGET_LINK_LIBRARIES(sudodem qhull Python::Python pybind11::module BZip2::BZip2 ZLIB::ZLIB OpenMP::OpenMP_CXX ${SUDODEM_GLUT_TARGET} ${OPENGL_LIBRARIES})
 	else()
-		TARGET_LINK_LIBRARIES(sudodem qhull ${Python_LIBRARIES} pybind11::module BZip2::BZip2 ZLIB::ZLIB ${SUDODEM_GLUT_TARGET} ${OPENGL_LIBRARIES})
+		TARGET_LINK_LIBRARIES(sudodem qhull Python::Python pybind11::module BZip2::BZip2 ZLIB::ZLIB ${SUDODEM_GLUT_TARGET} ${OPENGL_LIBRARIES})
 	endif()
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	SET_TARGET_PROPERTIES(sudodem PROPERTIES LINK_FLAGS "-Wl,--as-needed" INSTALL_RPATH "$ORIGIN;$ORIGIN/../;$ORIGIN/../3rdlibs;${Python_RUNTIME_LIBRARY_DIRS};" )
+	SET_TARGET_PROPERTIES(sudodem PROPERTIES LINK_FLAGS "-Wl,--as-needed" INSTALL_RPATH "$ORIGIN;$ORIGIN/../;$ORIGIN/../3rdlibs;" )
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-	# Add libomp rpath when OpenMP is enabled
-	if(OPENMP_FOUND)
-		SET_TARGET_PROPERTIES(sudodem PROPERTIES INSTALL_RPATH "@loader_path;@loader_path/../;@loader_path/../3rdlibs;@loader_path/../3rdlibs/py;@loader_path/py/sudodem/qt;@loader_path/../../../3rdlibs;${Python_RUNTIME_LIBRARY_DIRS};${OpenMP_ROOT}/lib;")
-	else()
-		SET_TARGET_PROPERTIES(sudodem PROPERTIES INSTALL_RPATH "@loader_path;@loader_path/../;@loader_path/../3rdlibs;@loader_path/../3rdlibs/py;@loader_path/py/sudodem/qt;@loader_path/../../../3rdlibs;${Python_RUNTIME_LIBRARY_DIRS};")
-	endif()
+	SET_TARGET_PROPERTIES(sudodem PROPERTIES INSTALL_RPATH "@loader_path;@loader_path/../;@loader_path/../3rdlibs;@loader_path/../3rdlibs/py;@loader_path/py/sudodem/qt;@loader_path/../../../3rdlibs;")
+
+  if(BUILD_STANDALONE_MACOS)
+    set_target_properties(sudodem PROPERTIES
+      MACOSX_RPATH ON
+      INSTALL_NAME_DIR "@rpath"
+    )
+  endif()
+
 endif()
 
 TARGET_LINK_LIBRARIES(boot PRIVATE sudodem pybind11::module)
@@ -469,28 +517,24 @@ if(ENABLE_GUI)
 endif() 
 
 if(WIN32)
-  TARGET_LINK_LIBRARIES(sudodem2d sudodem ${Python_LIBRARIES} pybind11::embed)
+  TARGET_LINK_LIBRARIES(sudodem2d sudodem Python::Python pybind11::embed)
 ELSE(WIN32)
-  TARGET_LINK_LIBRARIES(sudodem2d sudodem ${Python_LIBRARIES} pybind11::embed pthread)
+  TARGET_LINK_LIBRARIES(sudodem2d sudodem Python::Python pybind11::embed pthread)
 ENDIF(WIN32)
 
 IF(ENABLE_GUI)
  TARGET_INCLUDE_DIRECTORIES(sudodem2d PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/gui)
  TARGET_LINK_LIBRARIES(sudodem2d _GLViewer_core ${GUI_LIBS})
  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  SET_TARGET_PROPERTIES(sudodem2d PROPERTIES INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib/;$ORIGIN/../lib/sudodem;$ORIGIN/../lib/sudodem/py/sudodem/qt;$ORIGIN/../lib/3rdlibs;${Qt6_ROOT_CMAKE}/lib;${Python_RUNTIME_LIBRARY_DIRS};" )
+  SET_TARGET_PROPERTIES(sudodem2d PROPERTIES INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib/;$ORIGIN/../lib/sudodem;$ORIGIN/../lib/sudodem/py/sudodem/qt;$ORIGIN/../lib/3rdlibs;" )
  elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  # Add libomp rpath when OpenMP is enabled
-  if(OPENMP_FOUND)
-    SET_TARGET_PROPERTIES(sudodem2d PROPERTIES INSTALL_RPATH "@loader_path;@loader_path/../lib/;@loader_path/../lib/sudodem;@loader_path/../lib/sudodem/py/sudodem;@loader_path/../lib/sudodem/py/sudodem/qt;@loader_path/../lib/3rdlibs;${Qt6_ROOT_CMAKE}/lib;${Python_RUNTIME_LIBRARY_DIRS};${OpenMP_ROOT}/lib;")
-  else()
-    SET_TARGET_PROPERTIES(sudodem2d PROPERTIES INSTALL_RPATH "@loader_path;@loader_path/../lib/;@loader_path/../lib/sudodem;@loader_path/../lib/sudodem/py/sudodem;@loader_path/../lib/sudodem/py/sudodem/qt;@loader_path/../lib/3rdlibs;${Qt6_ROOT_CMAKE}/lib;${Python_RUNTIME_LIBRARY_DIRS};")
+    SET_TARGET_PROPERTIES(sudodem2d PROPERTIES INSTALL_RPATH "@executable_path;@executable_path/../lib/;@executable_path/../lib/sudodem;@executable_path/../lib/sudodem/py/sudodem;@executable_path/../lib/sudodem/py/sudodem/qt;@executable_path/../lib/3rdlibs;")
   endif()
- else()
-  SET_TARGET_PROPERTIES(sudodem2d PROPERTIES INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib/sudodem;$ORIGIN/../lib/sudodem/py/sudodem;$ORIGIN/../lib/sudodem/py/sudodem/qt;$ORIGIN/../lib/3rdlibs" )
- endif()
 ENDIF(ENABLE_GUI)
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND BUILD_STANDALONE_MACOS)
+  set_property(TARGET sudodem2d APPEND PROPERTY INSTALL_RPATH "@executable_path/../Frameworks")
+endif()
 
 #====================================
 #Back compatibility with scons
@@ -549,11 +593,10 @@ if(WIN32)
     VERBATIM
   )
 
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+else()
   add_custom_target(minieigen_install
     COMMAND sh -c "set -- \"${CMAKE_SOURCE_DIR}/../minieigen/lib\"/minieigen*; echo first=$1; echo dst='${SUDODEM_PY_PATH}'; [ -e \"$1\" ] && mkdir -p \"${SUDODEM_PY_PATH}\" && cp -fv \"${CMAKE_SOURCE_DIR}/../minieigen/lib\"/minieigen* \"${SUDODEM_PY_PATH}/\" || true"
     VERBATIM
-    USES_TERMINAL
 )
 endif()
 
@@ -706,7 +749,6 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_STANDALONE_LINUX)
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${Qt6_ROOT_CMAKE}/plugins/platforms/libqxcb.so"
             "${CMAKE_INSTALL_PREFIX}/plugins/platforms/libqxcb.so"
-    USES_TERMINAL
   )
 
   if(ENABLE_GUI AND Qt6_FOUND)
@@ -715,7 +757,6 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_STANDALONE_LINUX)
             -DQT_DEPLOY_PREFIX=${CMAKE_INSTALL_PREFIX}
             -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
             -P "${deploy_script}"
-      USES_TERMINAL
     )
   endif()
 
@@ -726,9 +767,14 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_STANDALONE_LINUX)
             "${ZLIB_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/${ZLIB_REAL_LIB_NAME}"
 
     COMMAND ${CMAKE_COMMAND} -E create_symlink
-            "${BZIP2_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libbz2.so"
+            "${BZIP2_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libbz2.dylib"
     COMMAND ${CMAKE_COMMAND} -E create_symlink
-            "${ZLIB_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libz.so"
+            "${BZIP2_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libbz2.1.dylib"
+
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${ZLIB_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libz.dylib"
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${ZLIB_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libz.1.dylib"
 
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${GLU_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/${GLU_REAL_LIB_NAME}"
@@ -741,9 +787,95 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_STANDALONE_LINUX)
   foreach(_lib IN LISTS OPENMP_REAL_LIBS)
     get_filename_component(_name "${_lib}" NAME)
     add_custom_command(TARGET pack_linux POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      COMMAND ${CMAKE_COMMAND} -E copy
               "${_lib}" "${PACK_3RDLIB_DIR}/${_name}"
     )
   endforeach()
+
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND BUILD_STANDALONE_MACOS)
+
+  # zlib and bzip2
+  set(BZIP2_LIB_PATH "${BZIP2_LIBRARIES}")
+  file(REAL_PATH "${BZIP2_LIB_PATH}" BZIP2_REAL_LIB_PATH)
+  get_filename_component(BZIP2_REAL_LIB_NAME "${BZIP2_REAL_LIB_PATH}" NAME)
+
+  set(ZLIB_LIB_PATH "${ZLIB_LIBRARIES}")
+  file(REAL_PATH "${ZLIB_LIB_PATH}" ZLIB_REAL_LIB_PATH)
+  get_filename_component(ZLIB_REAL_LIB_NAME "${ZLIB_REAL_LIB_PATH}" NAME)
+
+  set(PYTHON_LIB_PATH "${Python_LIBRARIES}")
+  file(REAL_PATH "${PYTHON_LIB_PATH}" PYTHON_REAL_LIB_PATH)
+  get_filename_component(PYTHON_REAL_LIB_NAME "${PYTHON_REAL_LIB_PATH}" NAME)
+
+  # OpenMP
+  set(OPENMP_REAL_LIBS "")
+  foreach(_lib ${OpenMP_CXX_LIBRARIES})
+    if(EXISTS "${_lib}")
+      get_filename_component(_ext "${_lib}" EXT)
+      if(_ext STREQUAL ".dylib" OR _lib MATCHES "\\.dylib\\.")
+        file(REAL_PATH "${_lib}" _real_lib)
+        list(APPEND OPENMP_REAL_LIBS "${_real_lib}")
+        message(STATUS "Pack OpenMP runtime: ${_real_lib}")
+      endif()
+    endif()
+  endforeach()
+  list(REMOVE_DUPLICATES OPENMP_REAL_LIBS)
+
+  set(PACK_3RDLIB_DIR "${CMAKE_INSTALL_PREFIX}/lib/3rdlibs")
+
+  cmake_path(ABSOLUTE_PATH USER_PYTHON_ROOT NORMALIZE OUTPUT_VARIABLE USER_PYTHON_DIR_ABS)
+
+  add_custom_target(pack_macos
+
+    COMMENT "Macos package -> standalone program at install prefix: ${CMAKE_INSTALL_PREFIX}"
+    
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${PACK_3RDLIB_DIR}"
+        
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          "${BZIP2_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/${BZIP2_REAL_LIB_NAME}"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          "${ZLIB_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/${ZLIB_REAL_LIB_NAME}"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          "${PYTHON_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/${PYTHON_REAL_LIB_NAME}"
+
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${BZIP2_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libbz2.dylib"
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${BZIP2_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libbz2.1.dylib"
+
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${ZLIB_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libz.dylib"
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${ZLIB_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libz.1.dylib"
+
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+          "${PYTHON_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libpython3.dylib"
+
+    COMMAND install_name_tool -id "@rpath/${BZIP2_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/${BZIP2_REAL_LIB_NAME}"
+    COMMAND install_name_tool -id "@rpath/${ZLIB_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/${ZLIB_REAL_LIB_NAME}"
+    COMMAND install_name_tool -id "@rpath/${PYTHON_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/${PYTHON_REAL_LIB_NAME}"
+
+
+  )
+
+  foreach(_lib IN LISTS OPENMP_REAL_LIBS)
+    get_filename_component(_name "${_lib}" NAME)
+    file(REAL_PATH "${_lib}" OMP_REAL_RESOLVED)
+
+    add_custom_command(TARGET pack_macos POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy "${OMP_REAL_RESOLVED}" "${PACK_3RDLIB_DIR}/${_name}"
+      COMMAND install_name_tool -id "@rpath/${_name}" "${PACK_3RDLIB_DIR}/${_name}"
+    )
+  endforeach()
+
+  add_custom_command(TARGET pack_macos POST_BUILD
+      COMMAND ${CMAKE_COMMAND}
+              -DINSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+              -DAPP_NAME=SudoDEM2D
+              -DAPP_EXE_NAME=sudodem2d
+              -DMACDEPLOYQT_EXECUTABLE=macdeployqt
+              -DUSER_PYTHON_DIR=${USER_PYTHON_DIR_ABS}
+              -P "${CMAKE_SOURCE_DIR}/cMake/PackMacBundle.cmake"
+  )
 
 endif()

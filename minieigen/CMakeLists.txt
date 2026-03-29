@@ -1,6 +1,27 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.16)
 PROJECT(minieigen CXX)
 
+set(BUILD_STANDALONE_WIN ON CACHE BOOL "Standalone program WIN")
+set(BUILD_STANDALONE_LINUX ON CACHE BOOL "Standalone program LINUX")
+set(BUILD_STANDALONE_MACOS ON CACHE BOOL "Standalone program MACOS")
+
+SET(CMAKE_SKIP_BUILD_RPATH TRUE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+# Set up user-defined version, mandatory for standalone build
+set(USER_PYTHON_ROOT "${CMAKE_SOURCE_DIR}/../../mypython")
+set(USER_BZIP2_ROOT "${CMAKE_SOURCE_DIR}/../../bzip2")
+set(USER_LIBZ_ROOT "${CMAKE_SOURCE_DIR}/../../zlib")
+
+if(
+(WIN32 AND BUILD_STANDALONE_WIN) OR
+(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_STANDALONE_LINUX) OR
+(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND BUILD_STANDALONE_MACOS)
+)
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
+endif()
+
 SET(CMAKE_CXX_STANDARD 17)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -17,9 +38,18 @@ file(TO_CMAKE_PATH "$ENV{CONDA_PREFIX}" CONDA_PREFIX_CMAKE)
 list(PREPEND CMAKE_PREFIX_PATH "${CONDA_PREFIX_CMAKE}")
 MESSAGE(STATUS "Miniconda env: ${CONDA_PREFIX_CMAKE}")
 
-# 1. Find the active Python
-set(Python_ROOT_DIR "${CONDA_PREFIX_CMAKE}")
-set(Python3_ROOT_DIR "${CONDA_PREFIX_CMAKE}")
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  if(BUILD_STANDALONE_MACOS)
+    set(Python_ROOT_DIR "${USER_PYTHON_ROOT}")
+    set(Python3_ROOT_DIR "${USER_PYTHON_ROOT}")
+  else()
+    set(Python_ROOT_DIR "${CONDA_PREFIX_CMAKE}")
+    set(Python3_ROOT_DIR "${CONDA_PREFIX_CMAKE}")
+  endif()
+else()
+  set(Python_ROOT_DIR "${CONDA_PREFIX_CMAKE}")
+  set(Python3_ROOT_DIR "${CONDA_PREFIX_CMAKE}")
+endif()
 
 set(Python_FIND_STRATEGY LOCATION)
 set(Python3_FIND_STRATEGY LOCATION)
@@ -27,18 +57,22 @@ set(Python3_FIND_STRATEGY LOCATION)
 set(Python_FIND_VIRTUALENV STANDARD)
 set(Python3_FIND_VIRTUALENV STANDARD)
 
-if(WIN32)
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  if(BUILD_STANDALONE_MACOS)
+    set(Python_EXECUTABLE "${USER_PYTHON_ROOT}/bin/python3" CACHE FILEPATH "Python executable" FORCE)
+  else()
+    set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/bin/python" CACHE FILEPATH "Python executable" FORCE)
+  endif()
+elseif(WIN32)
   set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/python.exe" CACHE FILEPATH "Python executable" FORCE)
-else()
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/bin/python" CACHE FILEPATH "Python executable" FORCE)
 endif()
+
 find_package(Python 3.13 REQUIRED COMPONENTS Interpreter Development Development.Module)
 
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/pybind11" "${CMAKE_CURRENT_BINARY_DIR}/pybind11")
-endif()
-
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/pybind11" "${CMAKE_CURRENT_BINARY_DIR}/pybind11")
 
 
 
@@ -61,7 +95,6 @@ ADD_DEFINITIONS("-DEIGEN_DONT_VECTORIZE -DEIGEN_DONT_ALIGN -DEIGEN_DISABLE_UNALI
 
 # RPATH Settings
 SET(CMAKE_INSTALL_RPATH "@loader_path;")
-SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
 
 # 3. Set Eigen3 paths (allow override from command line)
 if(NOT EIGEN3_INCLUDE_DIR)

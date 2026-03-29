@@ -573,7 +573,7 @@ add_custom_target(
           ${PYBIND11_ABS_PYTEST_FILES} ${PYBIND11_PYTEST_ARGS}
   DEPENDS ${test_targets}
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-  USES_TERMINAL)
+  )
 
 if(NOT PYBIND11_CUDA_TESTS)
   # This module doesn't get mixed with other test modules because those aren't subinterpreter safe.
@@ -622,7 +622,7 @@ add_custom_target(
     ${PYTHON_EXECUTABLE} -m pytest ${PYBIND11_ABS_PYTEST_FILES}
   DEPENDS ${test_targets}
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-  USES_TERMINAL)
+  )
 # cmake-format: on
 
 # Add a check target to run all the tests, starting with pytest (we add dependencies to this below)

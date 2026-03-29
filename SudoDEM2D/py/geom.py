@@ -299,7 +299,7 @@ def facetBunker(center,dBunker,dOutput,hBunker,hOutput,hPipe=0.0,orientation=Qua
 
 #facetPolygonHelixGenerator==================================================
 def facetPolygonHelixGenerator(center,radiusOuter,pitch=0,orientation=Quaternion((0,1,0),0.0),segmentsNumber=10,angleRange=None,radiusInner=0,**kw):
-	"""
+	r"""
 	Please, do not use this function directly! Use geom.facetPloygon and geom.facetHelix instead.
 	This is the base function for generating polygons and helixes from facets.
 	"""
