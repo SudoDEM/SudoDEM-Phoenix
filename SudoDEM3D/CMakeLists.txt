@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.16)
 project(sudoDEM C CXX)
 
 set(BUILD_STANDALONE_WIN ON CACHE BOOL "Standalone program WIN")
-set(BUILD_STANDALONE_LINUX ON CACHE BOOL "Standalone program LINUX")
-set(BUILD_STANDALONE_MACOS ON CACHE BOOL "Standalone program MACOS")
+set(BUILD_STANDALONE_LINUX OFF CACHE BOOL "Standalone program LINUX")
+set(BUILD_STANDALONE_MACOS OFF CACHE BOOL "Standalone program MACOS")
 
 SET(CMAKE_SKIP_BUILD_RPATH TRUE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
@@ -41,8 +41,16 @@ MESSAGE(STATUS "Miniconda env: ${CONDA_PREFIX_CMAKE}")
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cMake")
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" )
   if(BUILD_STANDALONE_MACOS)
+    set(Python_ROOT_DIR "${USER_PYTHON_ROOT}")
+    set(Python3_ROOT_DIR "${USER_PYTHON_ROOT}")
+  else()
+    set(Python_ROOT_DIR "${CONDA_PREFIX_CMAKE}")
+    set(Python3_ROOT_DIR "${CONDA_PREFIX_CMAKE}")
+  endif()
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  if(BUILD_STANDALONE_LINUX)
     set(Python_ROOT_DIR "${USER_PYTHON_ROOT}")
     set(Python3_ROOT_DIR "${USER_PYTHON_ROOT}")
   else()
@@ -66,10 +74,14 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   else()
     set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/bin/python" CACHE FILEPATH "Python executable" FORCE)
   endif()
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  if(BUILD_STANDALONE_LINUX)
+    set(Python_EXECUTABLE "${USER_PYTHON_ROOT}/bin/python3" CACHE FILEPATH "Python executable" FORCE)
+  else()
+    set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/bin/python" CACHE FILEPATH "Python executable" FORCE)
+  endif()
 elseif(WIN32)
   set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/python.exe" CACHE FILEPATH "Python executable" FORCE)
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/bin/python" CACHE FILEPATH "Python executable" FORCE)
 endif()
 
 find_package(Python 3.13 REQUIRED COMPONENTS Interpreter Development.Module Development.Embed)
@@ -151,8 +163,14 @@ if(WIN32)
   set(BZIP2_LIBRARY_RELEASE "${CONDA_PREFIX_CMAKE}/Library/lib/bzip2.lib")
   set(ZLIB_ROOT "${CONDA_PREFIX_CMAKE}/Library")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  set(BZIP2_INCLUDE_DIR "${CONDA_PREFIX_CMAKE}/include")
-  set(ZLIB_ROOT "${CONDA_PREFIX_CMAKE}")
+  if(BUILD_STANDALONE_LINUX)
+    set(BZIP2_INCLUDE_DIR "${USER_BZIP2_ROOT}/include")
+    set(BZIP2_LIBRARY_RELEASE "${USER_BZIP2_ROOT}/lib/libbz2.so.1.0.8")
+    set(ZLIB_ROOT "${USER_LIBZ_ROOT}")
+  else()
+    set(BZIP2_INCLUDE_DIR "${CONDA_PREFIX_CMAKE}/include")
+    set(ZLIB_ROOT "${CONDA_PREFIX_CMAKE}")
+  endif()
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   if(BUILD_STANDALONE_MACOS)
     set(BZIP2_INCLUDE_DIR "${USER_BZIP2_ROOT}/include")
@@ -505,7 +523,11 @@ elseif(WIN32)
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	TARGET_LINK_LIBRARIES(sudodem qhull Python::Python -lrt pybind11::module BZip2::BZip2 ZLIB::ZLIB ${SUDODEM_GLUT_TARGET} ${OPENGL_LIBRARIES})
+	  if(OPENMP_FOUND)
+	  TARGET_LINK_LIBRARIES(sudodem qhull Python::Python -lrt pybind11::module BZip2::BZip2 ZLIB::ZLIB OpenMP::OpenMP_CXX  ${SUDODEM_GLUT_TARGET} ${OPENGL_LIBRARIES})
+  else()
+	  TARGET_LINK_LIBRARIES(sudodem qhull Python::Python -lrt pybind11::module BZip2::BZip2 ZLIB::ZLIB ${SUDODEM_GLUT_TARGET} ${OPENGL_LIBRARIES})
+  endif()
 else()
 	# macOS and win
 	if(OPENMP_FOUND)
@@ -519,11 +541,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	SET_TARGET_PROPERTIES(sudodem PROPERTIES LINK_FLAGS "-Wl,--as-needed" INSTALL_RPATH "$ORIGIN;$ORIGIN/../;$ORIGIN/../3rdlibs;" )
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	# Add libomp rpath when OpenMP is enabled
-	if(OPENMP_FOUND)
-		SET_TARGET_PROPERTIES(sudodem PROPERTIES INSTALL_RPATH "@loader_path;@loader_path/../;@loader_path/../3rdlibs;@loader_path/../3rdlibs/py;@loader_path/py/sudodem/qt;@loader_path/../../../3rdlibs;")
-	else()
-		SET_TARGET_PROPERTIES(sudodem PROPERTIES INSTALL_RPATH "@loader_path;@loader_path/../;@loader_path/../3rdlibs;@loader_path/../3rdlibs/py;@loader_path/py/sudodem/qt;@loader_path/../../../3rdlibs;")
-	endif()
+	SET_TARGET_PROPERTIES(sudodem PROPERTIES INSTALL_RPATH "@loader_path;@loader_path/../;@loader_path/../3rdlibs;@loader_path/../3rdlibs/py;@loader_path/py/sudodem/qt;@loader_path/../../../3rdlibs;")
 
   if(BUILD_STANDALONE_MACOS)
     set_target_properties(sudodem PROPERTIES
@@ -706,26 +724,7 @@ if(WIN32 AND BUILD_STANDALONE_WIN)
 #======================= LINUX PACK =======================#
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_STANDALONE_LINUX)
 
-  if(ENABLE_GUI AND Qt6_FOUND)
-
-      qt_generate_deploy_script(
-            TARGET sudodem3d
-            OUTPUT_SCRIPT deploy_script
-            CONTENT "
-
-        include(\"\${QT_DEPLOY_SUPPORT}\")
-
-        qt_deploy_runtime_dependencies(
-            EXECUTABLE \"bin/sudodem3d\"
-            BIN_DIR \"bin\"
-            LIB_DIR \"lib/3rdlibs\"
-            NO_TRANSLATIONS
-        )
-        "
-        )
-  endif()
-
-  # non-Qt
+   # non-Qt
 
   set(BZIP2_LIB_PATH "${BZIP2_LIBRARIES}")
   file(REAL_PATH "${BZIP2_LIB_PATH}" BZIP2_REAL_LIB_PATH)
@@ -734,6 +733,10 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_STANDALONE_LINUX)
   set(ZLIB_LIB_PATH "${ZLIB_LIBRARIES}")
   file(REAL_PATH "${ZLIB_LIB_PATH}" ZLIB_REAL_LIB_PATH)
   get_filename_component(ZLIB_REAL_LIB_NAME "${ZLIB_REAL_LIB_PATH}" NAME)
+
+  set(PYTHON_LIB_PATH "${Python_LIBRARIES}")
+  file(REAL_PATH "${PYTHON_LIB_PATH}" PYTHON_REAL_LIB_PATH)
+  get_filename_component(PYTHON_REAL_LIB_NAME "${PYTHON_REAL_LIB_PATH}" NAME)
 
   # OpenGL
   get_target_property(OPENGL_LIB_PATH OpenGL::OpenGL IMPORTED_LOCATION)
@@ -767,39 +770,31 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_STANDALONE_LINUX)
   add_custom_target(pack_linux
     COMMENT "Linux package -> standalone program at install prefix: ${CMAKE_INSTALL_PREFIX}"
 
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/plugins/platforms"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${PACK_3RDLIB_DIR}"
-    # Qt: only if generated
-    COMMAND ${CMAKE_COMMAND} -E echo "Running Linux pack target"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${Qt6_ROOT_CMAKE}/plugins/platforms/libqxcb.so"
-            "${CMAKE_INSTALL_PREFIX}/plugins/platforms/libqxcb.so"
   )
 
-  if(ENABLE_GUI AND Qt6_FOUND)
-    add_custom_command(TARGET pack_linux POST_BUILD
-      COMMAND ${CMAKE_COMMAND}
-            -DQT_DEPLOY_PREFIX=${CMAKE_INSTALL_PREFIX}
-            -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
-            -P "${deploy_script}"
-    )
-  endif()
-
   add_custom_command(TARGET pack_linux POST_BUILD
+    COMMENT "Linux package -> pack zlib bzip2 and opengl"
+
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${BZIP2_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/${BZIP2_REAL_LIB_NAME}"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${ZLIB_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/${ZLIB_REAL_LIB_NAME}"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${PYTHON_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/${PYTHON_REAL_LIB_NAME}"
 
     COMMAND ${CMAKE_COMMAND} -E create_symlink
             "${BZIP2_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libbz2.so"
     COMMAND ${CMAKE_COMMAND} -E create_symlink
-            "${BZIP2_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libbz2.1.so"
-
+            "${BZIP2_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libbz2.so.1.0"
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${PYTHON_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libpython3.so"
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${PYTHON_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libpython3.13.so"
     COMMAND ${CMAKE_COMMAND} -E create_symlink
             "${ZLIB_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libz.so"
     COMMAND ${CMAKE_COMMAND} -E create_symlink
-            "${ZLIB_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libz.1.so"
+            "${ZLIB_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libz.so.1"
 
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${GLU_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/${GLU_REAL_LIB_NAME}"
@@ -807,6 +802,23 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_STANDALONE_LINUX)
             "${GLUT_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/${GLUT_REAL_LIB_NAME}"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${OPENGL_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/${OPENGL_REAL_LIB_NAME}"
+
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${GLU_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/libGLU.so"
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${GLU_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/libGLU.so.1"
+
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${GLUT_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/libglut.so"
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${GLUT_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/libglut.so.3"
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${GLUT_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libglut.so.3.12"
+
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${OPENGL_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/libOpenGL.so"
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${OPENGL_REAL_LIB_PATH}" "${PACK_3RDLIB_DIR}/libOpenGL.so.0"
   )
 
   foreach(_lib IN LISTS OPENMP_REAL_LIBS)
@@ -817,6 +829,28 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_STANDALONE_LINUX)
     )
   endforeach()
 
+  add_custom_command(TARGET pack_linux POST_BUILD
+    COMMENT "Linux package -> pack python"
+
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${PACK_3RDLIB_DIR}/pythonhome/lib/python3.13"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${USER_PYTHON_ROOT}/lib/python3.13" "${PACK_3RDLIB_DIR}/pythonhome/lib/python3.13"
+
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${PACK_3RDLIB_DIR}/${PYTHON_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/pythonhome/libpython3.so"
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${PACK_3RDLIB_DIR}/${PYTHON_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/pythonhome/libpython3.13.so"
+  )
+
+  add_custom_command(TARGET pack_linux POST_BUILD
+      COMMENT "Linux package -> pack qt"
+
+      COMMAND ${CMAKE_COMMAND}
+              -DINSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+              -DQT_ROOT=${Qt6_ROOT_CMAKE}
+              -P "${CMAKE_SOURCE_DIR}/cMake/PackLinuxQt.cmake"
+  )
+  
+# ======================== MACOS PACK ===========================
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND BUILD_STANDALONE_MACOS)
 
   # zlib and bzip2
