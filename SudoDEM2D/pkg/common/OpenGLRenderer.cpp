@@ -31,7 +31,6 @@ OpenGLRenderer::~OpenGLRenderer(){}
 
 
 void OpenGLRenderer::init(){
-	std::cerr << "DEBUG OpenGLRenderer::init: scanning ClassRegistry for GL functors" << std::endl;
 	
 	// Use ClassRegistry instead of dynlibs to find GL functors
 	// Get all registered classes from ClassRegistry
@@ -62,11 +61,9 @@ void OpenGLRenderer::init(){
 		                    baseClassName.find("Gl") == std::string::npos);
 		
 		if (!isBaseClass && inheritsFrom(baseClassName, "GlBoundFunctor")) {
-			std::cerr << "DEBUG: Adding " << className << " to boundFunctorNames (base=" << baseClassName << ")" << std::endl;
 			boundFunctorNames.push_back(className);
 		}
 		if (!isBaseClass && inheritsFrom(baseClassName, "GlShapeFunctor")) {
-			std::cerr << "DEBUG: Adding " << className << " to shapeFunctorNames (base=" << baseClassName << ")" << std::endl;
 			shapeFunctorNames.push_back(className);
 		}
 		if (!isBaseClass && inheritsFrom(baseClassName, "GlIGeomFunctor")) {

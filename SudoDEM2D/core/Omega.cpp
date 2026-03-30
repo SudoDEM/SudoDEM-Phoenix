@@ -146,7 +146,6 @@ bool Omega::isRunning(){ if(simulationLoop) return simulationLoop->looping(); el
 
 void Omega::buildDynlibDatabase(const vector<string>& dynlibsList){
 	LOG_DEBUG("called with "<<dynlibsList.size()<<" plugins.");
-	std::cerr << "DEBUG buildDynlibDatabase: called with " << dynlibsList.size() << " plugins" << std::endl;
 	for(const auto& name : dynlibsList) {
 		if (name.find("Gl") != string::npos) {
 			std::cerr << "DEBUG buildDynlibDatabase: GL class: " << name << std::endl;

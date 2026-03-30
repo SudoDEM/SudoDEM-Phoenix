@@ -433,6 +433,59 @@ int main( int argc, char **argv )
 
     PyConfig_Clear(&config);
     
+  #elif (defined(_WIN32) && BUILD_STANDALONE_WIN)
+
+    std::filesystem::path this_exe = std::filesystem::weakly_canonical(std::filesystem::path(argv[0]));
+    std::filesystem::path this_bin_dir = this_exe.parent_path();
+    std::filesystem::path this_lib_dir = this_bin_dir.parent_path() / "lib";
+
+    std::filesystem::path this_pyhome = this_bin_dir / "pythonhome";
+    std::filesystem::path this_pylib = this_pyhome / "Lib";
+    std::filesystem::path this_py_dynlib = this_pyhome / "DLLs";
+    std::filesystem::path this_py_sitepkg = this_pyhome / "Lib" / "site-packages";
+    std::filesystem::path this_py_sudodempkg = this_lib_dir / "sudodem" / "py";
+    
+    PyConfig config;
+    PyConfig_InitPythonConfig(&config);
+
+
+    config.isolated = 1;
+    config.use_environment = 0;
+    config.site_import = 1;
+    config.module_search_paths_set = 1;
+
+    PyStatus st;
+
+    std::string s1 = this_exe.string();
+    std::wstring ws1(s1.begin(), s1.end());
+    st = PyConfig_SetString(&config, &config.program_name, ws1.c_str());
+
+    std::string s2 = this_pyhome.string();
+    std::wstring ws2(s2.begin(), s2.end());
+    st = PyConfig_SetString(&config, &config.home, ws2.c_str());
+
+    std::string s3 = this_pylib.string();
+    std::wstring ws3(s3.begin(), s3.end());
+    st = PyWideStringList_Append(&config.module_search_paths, ws3.c_str());
+
+    std::string s4 = this_py_dynlib.string();
+    std::wstring ws4(s4.begin(), s4.end());
+    st = PyWideStringList_Append(&config.module_search_paths, ws4.c_str());
+
+    std::string s5 = this_py_sitepkg.string();
+    std::wstring ws5(s5.begin(), s5.end());
+    st = PyWideStringList_Append(&config.module_search_paths, ws5.c_str());
+
+    std::string s6 = this_py_sudodempkg.string();
+    std::wstring ws6(s6.begin(), s6.end());
+    st = PyWideStringList_Append(&config.module_search_paths, ws6.c_str());
+    
+    
+    st = Py_InitializeFromConfig(&config);
+    PyEval_InitThreads(); // Initialize threading support for Python
+
+
+    PyConfig_Clear(&config);
   #elif _WIN32
     std::wstring py_home_forsudodem = get_python_home_from_python_exe();
 

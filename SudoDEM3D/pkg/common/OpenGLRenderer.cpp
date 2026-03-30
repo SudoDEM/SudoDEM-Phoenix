@@ -69,7 +69,6 @@ OpenGLRenderer::~OpenGLRenderer(){}
 
 
 void OpenGLRenderer::init(){
-	std::cerr << "DEBUG OpenGLRenderer::init: scanning ClassRegistry for GL functors" << std::endl;
 	
 	// Use ClassRegistry instead of dynlibs to find GL functors
 	// Get all registered classes from ClassRegistry
@@ -100,11 +99,9 @@ void OpenGLRenderer::init(){
 		                    baseClassName.find("Gl") == std::string::npos);
 		
 		if (!isBaseClass && inheritsFrom(baseClassName, "GlBoundFunctor")) {
-			std::cerr << "DEBUG: Adding " << className << " to boundFunctorNames (base=" << baseClassName << ")" << std::endl;
 			boundFunctorNames.push_back(className);
 		}
 		if (!isBaseClass && inheritsFrom(baseClassName, "GlShapeFunctor")) {
-			std::cerr << "DEBUG: Adding " << className << " to shapeFunctorNames (base=" << baseClassName << ")" << std::endl;
 			shapeFunctorNames.push_back(className);
 		}
 		if (!isBaseClass && inheritsFrom(baseClassName, "GlIGeomFunctor")) {
@@ -129,18 +126,11 @@ void OpenGLRenderer::init(){
 
 	static bool glutInitDone=false;
 	if(!glutInitDone){
-		std::cerr << "DEBUG: render initgl check, qt version >=6" << std::endl;
 #if QT_VERSION_MAJOR >= 6
 		// When using Qt6, GLUT initialization is not needed and causes conflicts
 		// Qt6's QOpenGLWidget provides all necessary OpenGL functionality
 		// Skip GLUT initialization to avoid "glutInit being called a second time" error
 
-		std::cerr << "DEBUG: argc "<<Omega::instance().origArgc << " ptr "<<Omega::instance().origArgv<<std::endl;
-		for (int i = 0; i < Omega::instance().origArgc; ++i) {
-			std::cout << "argv[" << i << "] = "
-					<< (Omega::instance().origArgv[i] ? Omega::instance().origArgv[i] : "(null)")
-					<< std::endl;
-		}
 
 		#if defined(_WIN32) || defined(__linux__)
 			int fakeArgc = 1;
@@ -154,7 +144,6 @@ void OpenGLRenderer::init(){
 			std::cerr << "DEBUG: Skipping GLUT initialization (Qt6 provides OpenGL context, except win os)" << std::endl;
 		#endif
 
-		std::cerr<<"DEBUG: Glut init done"<<std::endl;
 #else
 		glutInit(&Omega::instance().origArgc,Omega::instance().origArgv);
 		/* transparent spheres (still not working): glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH | GLUT_MULTISAMPLE | GLUT_ALPHA); glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE); */
@@ -169,7 +158,6 @@ void OpenGLRenderer::init(){
 		 initgl();
 	#endif
 
-	std::cerr<<"gl init done"<<std::endl;
 
 	// std::cerr << "DEBUG: OpenGLRenderer::init() completed successfully" << std::endl;
 	// glGetError crashes at some machines?! Was never really useful, anyway.
@@ -188,7 +176,6 @@ void OpenGLRenderer::setBodiesRefPos(){
 
 
 void OpenGLRenderer::initgl(){
-	std::cerr<<"gl init func header"<<std::endl;
 	LOG_DEBUG("(re)initializing GL for gldraw methods.\n");
 	
 	// Helper function to create functors from ClassRegistry

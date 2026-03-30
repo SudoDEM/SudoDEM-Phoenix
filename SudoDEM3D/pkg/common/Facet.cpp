@@ -79,8 +79,6 @@ bool Gl1_Facet::normals=false;
 
 void Gl1_Facet::go(const shared_ptr<Shape>& cm, const shared_ptr<State>& ,bool wire,const GLViewInfo&)
 {
-	std::cerr<<"aaaaaaaaaacet gl functor "<<std::endl;
-
 	Facet* facet = static_cast<Facet*>(cm.get());
 	const vector<Vector3r>& vertices = facet->vertices;
 	const Vector3r* ne = facet->ne;

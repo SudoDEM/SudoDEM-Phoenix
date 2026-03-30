@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(sudoDEM C CXX)
 
-set(BUILD_STANDALONE_WIN ON CACHE BOOL "Standalone program WIN")
+set(BUILD_STANDALONE_WIN OFF CACHE BOOL "Standalone program WIN")
 set(BUILD_STANDALONE_LINUX OFF CACHE BOOL "Standalone program LINUX")
 set(BUILD_STANDALONE_MACOS OFF CACHE BOOL "Standalone program MACOS")
 
@@ -58,8 +58,13 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(Python3_ROOT_DIR "${CONDA_PREFIX_CMAKE}")
   endif()
 else()
-  set(Python_ROOT_DIR "${CONDA_PREFIX_CMAKE}")
-  set(Python3_ROOT_DIR "${CONDA_PREFIX_CMAKE}")
+  if(BUILD_STANDALONE_WIN)
+    set(Python_ROOT_DIR "${USER_PYTHON_ROOT}")
+    set(Python3_ROOT_DIR "${USER_PYTHON_ROOT}")
+  else()
+    set(Python_ROOT_DIR "${CONDA_PREFIX_CMAKE}")
+    set(Python3_ROOT_DIR "${CONDA_PREFIX_CMAKE}")
+  endif()
 endif()
 
 set(Python_FIND_STRATEGY LOCATION)
@@ -81,7 +86,11 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/bin/python" CACHE FILEPATH "Python executable" FORCE)
   endif()
 elseif(WIN32)
-  set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/python.exe" CACHE FILEPATH "Python executable" FORCE)
+  if(BUILD_STANDALONE_WIN)
+    set(Python_EXECUTABLE "${USER_PYTHON_ROOT}/python.exe" CACHE FILEPATH "Python executable" FORCE)
+  else()
+    set(Python_EXECUTABLE "${CONDA_PREFIX_CMAKE}/python.exe" CACHE FILEPATH "Python executable" FORCE)
+  endif()
 endif()
 
 find_package(Python 3.13 REQUIRED COMPONENTS Interpreter Development.Module Development.Embed)
@@ -159,9 +168,15 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/cereal/include)
 # Add BZip2 and ZLIB for compression
 
 if(WIN32)
-  set(BZIP2_INCLUDE_DIR "${CONDA_PREFIX_CMAKE}/Library/include")
-  set(BZIP2_LIBRARY_RELEASE "${CONDA_PREFIX_CMAKE}/Library/lib/bzip2.lib")
-  set(ZLIB_ROOT "${CONDA_PREFIX_CMAKE}/Library")
+  if(BUILD_STANDALONE_WIN)
+    set(BZIP2_INCLUDE_DIR "${USER_BZIP2_ROOT}/include")
+    set(BZIP2_LIBRARY_RELEASE "${USER_BZIP2_ROOT}/lib/libbz2.lib")
+    set(ZLIB_ROOT "${USER_LIBZ_ROOT}")
+  else()
+    set(BZIP2_INCLUDE_DIR "${CONDA_PREFIX_CMAKE}/Library/include")
+    set(BZIP2_LIBRARY_RELEASE "${CONDA_PREFIX_CMAKE}/Library/lib/bzip2.lib")
+    set(ZLIB_ROOT "${CONDA_PREFIX_CMAKE}/Library")
+  endif()
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   if(BUILD_STANDALONE_LINUX)
     set(BZIP2_INCLUDE_DIR "${USER_BZIP2_ROOT}/include")
@@ -655,70 +670,45 @@ if(WIN32 AND BUILD_STANDALONE_WIN)
   set(PACK_WIN_RUNTIME_DLLS "${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS}" CACHE INTERNAL "MSVC/OpenMP runtime DLLs to copy into the Windows package")
 
   set(PACK_WIN_VCRUNTIME_DLLS "")
-  set(PACK_WIN_VCOMP_DLLS "")
   
   foreach(_dll IN LISTS PACK_WIN_RUNTIME_DLLS)
-      get_filename_component(_dll_name "${_dll}" NAME)
-      string(TOLOWER "${_dll_name}" _dll_name_lc)
-      message(STATUS "Pack-VC RUNTIME DLLs: ${_dll_name_lc}")
-      if(_dll_name_lc MATCHES "^vcruntime[0-9_]*\\.dll$")
-          list(APPEND PACK_WIN_VCRUNTIME_DLLS "${_dll}")
-      endif()
+    list(APPEND PACK_WIN_VCRUNTIME_DLLS "${_dll}")
   endforeach()
 
-  if(OpenMP_CXX_FOUND)
-    if(DEFINED MSVC_OPENMP_DIR AND EXISTS "${MSVC_OPENMP_DIR}")
-        file(GLOB PACK_WIN_OPENMP_DLLS "${MSVC_OPENMP_DIR}/vcomp*.dll")
+  get_target_property(PYTHON_DLL_PATH Python::Python IMPORTED_LOCATION)
+  file(REAL_PATH "${PYTHON_DLL_PATH}" PYTHON_REAL_DLL_PATH)
+  get_filename_component(PYTHON_REAL_DLL_NAME "${PYTHON_REAL_DLL_PATH}" NAME)
 
-        if(PACK_WIN_OPENMP_DLLS)
-            message(STATUS "Pack-OpenMP DLL: ${PACK_WIN_OPENMP_DLLS}")
-            foreach(_dll IN LISTS PACK_WIN_OPENMP_DLLS)
-              if(EXISTS "${_dll}")
-                  list(APPEND PACK_WIN_VCOMP_DLLS "${_dll}")
-              else()
-                  message(WARNING "OpenMP DLL listed by CMake does not exist: ${_dll}")
-              endif()
-            endforeach()
-        else()
-            message(WARNING "MSVC_OPENMP_DIR exists, but no vcomp*.dll was found in it: ${MSVC_OPENMP_DIR}")
-        endif()
-    else()
-        message(WARNING "MSVC_OPENMP_DIR is not defined or does not exist.")
-    endif()
-  endif()
-
-  set(_pack_win_copy_cmds)
-  foreach(_dll IN LISTS PACK_WIN_VCRUNTIME_DLLS)
-    if(EXISTS "${_dll}")
-        list(APPEND _pack_win_copy_cmds
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_dll}" "${SUDODEM_EXEC_PATH}")
-    else()
-        message(WARNING "Runtime DLL listed by CMake does not exist: ${_dll}")
-    endif()
-  endforeach()
-  foreach(_dll IN LISTS PACK_WIN_VCOMP_DLLS)
-    if(EXISTS "${_dll}")
-        list(APPEND _pack_win_copy_cmds
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_dll}" "${SUDODEM_EXEC_PATH}")
-    else()
-        message(WARNING "OpenMP DLL listed by CMake does not exist: ${_dll}")
-    endif()
-  endforeach()
-   
   add_custom_target(pack_win
     COMMENT "Windows package -> Creating standalone program at install prefix: ${CMAKE_INSTALL_PREFIX}"
 
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${SUDODEM_EXEC_PATH}/pythonhome"
+
     # Step 1: qt pack
-    COMMAND windeployqt --release --no-translations --dir "${SUDODEM_EXEC_PATH}" "${SUDODEM_EXEC_PATH}/sudodem3d.exe"
+    COMMAND windeployqt --release --no-translations --no-compiler-runtime --dir "${SUDODEM_EXEC_PATH}" "${SUDODEM_EXEC_PATH}/sudodem3d.exe"
 
     # Step 2: Copy non-qt C++ DLLs
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CONDA_PREFIX_CMAKE}/Library/bin/zlib.dll" "${SUDODEM_EXEC_PATH}/"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CONDA_PREFIX_CMAKE}/Library/bin/libbz2.dll" "${SUDODEM_EXEC_PATH}/"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${USER_BZIP2_ROOT}/lib/libbz2.dll" "${SUDODEM_EXEC_PATH}/"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${USER_LIBZ_ROOT}/lib/libz.dll" "${SUDODEM_EXEC_PATH}/"
 
-    # Step 3: MSVC runtime and OpenMP (from compiler redist)
-    ${_pack_win_copy_cmds}
+    # Step 3: python
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PYTHON_REAL_DLL_PATH}" "${SUDODEM_EXEC_PATH}/${PYTHON_REAL_DLL_NAME}"
+    COMMAND ${CMAKE_COMMAND} -E create_symlink "${PYTHON_REAL_DLL_NAME}" "${SUDODEM_EXEC_PATH}/python3.dll"
+
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${USER_PYTHON_ROOT}/DLLs" "${SUDODEM_EXEC_PATH}/pythonhome/DLLs"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${USER_PYTHON_ROOT}/Lib" "${SUDODEM_EXEC_PATH}/pythonhome/Lib"
+
+    COMMAND ${CMAKE_COMMAND} -E create_symlink "${SUDODEM_EXEC_PATH}/${PYTHON_REAL_DLL_NAME}" "${SUDODEM_EXEC_PATH}/pythonhome/${PYTHON_REAL_DLL_NAME}"
+    COMMAND ${CMAKE_COMMAND} -E create_symlink "${SUDODEM_EXEC_PATH}/${PYTHON_REAL_DLL_NAME}" "${SUDODEM_EXEC_PATH}/pythonhome/python3.dll"
 
   )
+
+  # Step 4: vc runtime and openmp
+  foreach(_dll IN LISTS PACK_WIN_VCRUNTIME_DLLS)
+    add_custom_command(TARGET pack_win POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_dll}" "${SUDODEM_EXEC_PATH}"
+    )
+  endforeach()
 
 
 #======================= LINUX PACK =======================#

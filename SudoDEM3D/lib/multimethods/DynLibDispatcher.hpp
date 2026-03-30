@@ -261,7 +261,6 @@ class DynLibDispatcher
 			}
 
 			int& index = base->getClassIndex();
-			std::cerr << "DEBUG add1DEntry: " << typeid(BaseClassType).name() << " index=" << index << std::endl;
 			if(index == -1)
 				std::cerr << "--------> Did you forget to call createIndex(); in constructor?\n";
  			assert (index != -1);
@@ -328,7 +327,6 @@ class DynLibDispatcher
 			}
 
 			int& index = base->getClassIndex();
-			std::cerr << "DEBUG add1DEntry: " << baseClassName << " index=" << index << std::endl;
 			if(index == -1)
 				std::cerr << "--------> Did you forget to call createIndex(); in constructor?\n";
  			assert (index != -1);

@@ -30,8 +30,6 @@ void Bo1_Box_Aabb::go(	const shared_ptr<Shape>& cm,
 
 void Gl1_Box::go(const shared_ptr<Shape>& cg, const shared_ptr<State>&,bool wire,const GLViewInfo&)
 {
-	std::cerr<<"boxxxxxxxx gl functor "<<std::endl;
-
 	glColor3v(cg->color);
 	Vector3r &extents = (static_cast<Box*>(cg.get()))->extents;
 	glScalef(2*extents[0],2*extents[1],2*extents[2]);

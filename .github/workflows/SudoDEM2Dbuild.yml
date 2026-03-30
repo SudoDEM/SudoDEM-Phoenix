@@ -157,7 +157,6 @@ jobs:
         make -j4
         make install
         make minieigen_install
-        make pack_linux
 
     - name: Build SudoDEM2D on macOS
       if: runner.os == 'macOS'
