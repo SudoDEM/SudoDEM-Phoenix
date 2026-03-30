@@ -3,7 +3,7 @@ project(sudoDEM C CXX)
 
 set(BUILD_STANDALONE_WIN OFF CACHE BOOL "Standalone program WIN")
 set(BUILD_STANDALONE_LINUX OFF CACHE BOOL "Standalone program LINUX")
-set(BUILD_STANDALONE_MACOS OFF CACHE BOOL "Standalone program MACOS")
+set(BUILD_STANDALONE_MACOS ON CACHE BOOL "Standalone program MACOS")
 
 SET(CMAKE_SKIP_BUILD_RPATH TRUE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
@@ -891,11 +891,15 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND BUILD_STANDALONE_MACOS)
             "${BZIP2_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libbz2.dylib"
     COMMAND ${CMAKE_COMMAND} -E create_symlink
             "${BZIP2_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libbz2.1.dylib"
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${BZIP2_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libbz2.1.0.dylib"
 
     COMMAND ${CMAKE_COMMAND} -E create_symlink
             "${ZLIB_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libz.dylib"
     COMMAND ${CMAKE_COMMAND} -E create_symlink
             "${ZLIB_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libz.1.dylib"
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "${ZLIB_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libz.1.3.dylib"
 
     COMMAND ${CMAKE_COMMAND} -E create_symlink
           "${PYTHON_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libpython3.dylib"

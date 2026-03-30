@@ -173,81 +173,173 @@ execute_process(COMMAND "${CMAKE_COMMAND}" -E copy_directory "${SRC_PY_DIR}" "${
 execute_process(COMMAND "${CMAKE_COMMAND}" -E copy_directory "${USER_PYTHON_STD_DIR}" "${APP_PYTHON_STD_DIR}" COMMAND_ECHO STDOUT)
 
 # 7 copy python module deps lzma, cypto and sssl
-set(LZMA_REAL_LIB_PATH "/opt/homebrew/opt/xz/lib/liblzma.5.dylib")
-file(REAL_PATH "${LZMA_REAL_LIB_PATH}" LZMA_REAL_RESOLVED)
-set(LZMA_REAL_LIB_NAME "liblzma.5.dylib")
+set(PY_LIBDYNLOAD_DIR "${APP_PYTHON_STD_DIR}/lib-dynload")
+set(PY_SO_RPATH "@loader_path/../../../../../Frameworks")
 
-set(CRYPTO_REAL_LIB_PATH "/opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib")
-file(REAL_PATH "${CRYPTO_REAL_LIB_PATH}" CRYPTO_REAL_RESOLVED)
-set(CRYPTO_REAL_LIB_NAME "libcrypto.3.dylib")
+file(GLOB PY_SO_FILES "${PY_LIBDYNLOAD_DIR}/*.so")
+set(ALL_DEPS "")
+foreach(so IN LISTS PY_SO_FILES)
+    execute_process(
+        COMMAND otool -L "${so}"
+        OUTPUT_VARIABLE out
+    )
+    string(REPLACE "\n" ";" lines "${out}")
+    foreach(line IN LISTS lines)
+        string(STRIP "${line}" line)
+        if(line MATCHES "^([^ ]+)[ ]+\\(")
+            set(dep "${CMAKE_MATCH_1}")
 
-set(SSL_REAL_LIB_PATH "/opt/homebrew/opt/openssl@3/lib/libssl.3.dylib")
-file(REAL_PATH "${SSL_REAL_LIB_PATH}" SSL_REAL_RESOLVED)
-set(SSL_REAL_LIB_NAME "libssl.3.dylib")
+            if(dep MATCHES "^/System/" OR dep MATCHES "^/usr/lib/")
+                continue()
+            endif()
 
-execute_process(COMMAND "${CMAKE_COMMAND}" -E copy "${LZMA_REAL_RESOLVED}" "${APP_FRAME_DIR}/${LZMA_REAL_LIB_NAME}" COMMAND_ECHO STDOUT)
-execute_process(COMMAND "${CMAKE_COMMAND}" -E copy "${CRYPTO_REAL_RESOLVED}" "${APP_FRAME_DIR}/${CRYPTO_REAL_LIB_NAME}" COMMAND_ECHO STDOUT)
-execute_process(COMMAND "${CMAKE_COMMAND}" -E copy "${SSL_REAL_RESOLVED}" "${APP_FRAME_DIR}/${SSL_REAL_LIB_NAME}" COMMAND_ECHO STDOUT)
+            if(dep MATCHES "^@rpath/" OR dep MATCHES "^@loader_path/" OR dep MATCHES "^@executable_path/")
+                continue()
+            endif()
 
-execute_process(COMMAND chmod u+w "${APP_FRAME_DIR}/${LZMA_REAL_LIB_NAME}" COMMAND_ECHO STDOUT)
-execute_process(COMMAND chmod u+w "${APP_FRAME_DIR}/${CRYPTO_REAL_LIB_NAME}" COMMAND_ECHO STDOUT)
-execute_process(COMMAND chmod u+w "${APP_FRAME_DIR}/${SSL_REAL_LIB_NAME}" COMMAND_ECHO STDOUT)
+            if(IS_ABSOLUTE "${dep}")
+                list(APPEND ALL_DEPS "${dep}")
+            endif()
+        endif()
+    endforeach()
+endforeach()
+list(REMOVE_DUPLICATES ALL_DEPS)
 
-execute_process(COMMAND "${CMAKE_COMMAND}" -E create_symlink "${LZMA_REAL_LIB_NAME}" "${APP_FRAME_DIR}/liblzma.dylib" COMMAND_ECHO STDOUT)
-execute_process(COMMAND "${CMAKE_COMMAND}" -E create_symlink "${CRYPTO_REAL_LIB_NAME}" "${APP_FRAME_DIR}/libcrypto.dylib" COMMAND_ECHO STDOUT)
-execute_process(COMMAND "${CMAKE_COMMAND}" -E create_symlink "${SSL_REAL_LIB_NAME}" "${APP_FRAME_DIR}/libssl.dylib" COMMAND_ECHO STDOUT)
+message(STATUS "ALL_DEPS = ${ALL_DEPS}")
 
-execute_process(COMMAND install_name_tool -id "@rpath/${LZMA_REAL_LIB_NAME}" "${APP_FRAME_DIR}/${LZMA_REAL_LIB_NAME}" COMMAND_ECHO STDOUT)
-execute_process(COMMAND install_name_tool -id "@rpath/${CRYPTO_REAL_LIB_NAME}" "${APP_FRAME_DIR}/${CRYPTO_REAL_LIB_NAME}" COMMAND_ECHO STDOUT)
-execute_process(COMMAND install_name_tool -id "@rpath/${SSL_REAL_LIB_NAME}" "${APP_FRAME_DIR}/${SSL_REAL_LIB_NAME}" COMMAND_ECHO STDOUT)
+set(COPIED_REALS "")
+set(COPIED_REAL_NAMES "")
 
-execute_process(COMMAND install_name_tool -change "${CRYPTO_REAL_RESOLVED}" "@rpath/libcrypto.3.dylib" "${APP_FRAME_DIR}/${SSL_REAL_LIB_NAME}" COMMAND_ECHO STDOUT)
+foreach(dep IN LISTS ALL_DEPS)
+    file(REAL_PATH "${dep}" real_dep)
+    
+    get_filename_component(real_name "${real_dep}" NAME)
+    get_filename_component(dep_name "${dep}" NAME)
 
-# 8 python module link path modification
-execute_process(
-    COMMAND install_name_tool -change /opt/homebrew/opt/xz/lib/liblzma.5.dylib
-    @rpath/liblzma.5.dylib
-    "${APP_RESOURCES_DIR}/python/lib/python3.13/lib-dynload/_lzma.cpython-313-darwin.so"
-    COMMAND_ECHO STDOUT
-)
-execute_process(
-    COMMAND install_name_tool -add_rpath
-    @loader_path/../../../../../Frameworks
-    "${APP_RESOURCES_DIR}/python/lib/python3.13/lib-dynload/_lzma.cpython-313-darwin.so"
-    COMMAND_ECHO STDOUT
-)
+    file(COPY "${real_dep}" DESTINATION "${APP_FRAME_DIR}")
+    execute_process(COMMAND chmod u+w "${APP_FRAME_DIR}/${real_name}")
 
-execute_process(
-    COMMAND install_name_tool -change /opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib
-    @rpath/libcrypto.3.dylib
-    "${APP_RESOURCES_DIR}/python/lib/python3.13/lib-dynload/_hashlib.cpython-313-darwin.so"
-    COMMAND_ECHO STDOUT
-)
-execute_process(
-    COMMAND install_name_tool -add_rpath
-    @loader_path/../../../../../Frameworks
-    "${APP_RESOURCES_DIR}/python/lib/python3.13/lib-dynload/_hashlib.cpython-313-darwin.so"
-    COMMAND_ECHO STDOUT
-)
+    list(APPEND COPIED_REALS "${APP_FRAME_DIR}/${real_name}")
+    list(APPEND COPIED_REAL_NAMES "${real_name}")
 
-execute_process(
-    COMMAND install_name_tool -change /opt/homebrew/opt/openssl@3/lib/libssl.3.dylib
-    @rpath/libssl.3.dylib
-    "${APP_RESOURCES_DIR}/python/lib/python3.13/lib-dynload/_ssl.cpython-313-darwin.so"
-    COMMAND_ECHO STDOUT
-)
-execute_process(
-    COMMAND install_name_tool -change /opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib
-    @rpath/libcrypto.3.dylib
-    "${APP_RESOURCES_DIR}/python/lib/python3.13/lib-dynload/_ssl.cpython-313-darwin.so"
-    COMMAND_ECHO STDOUT
-)
-execute_process(
-    COMMAND install_name_tool -add_rpath
-    @loader_path/../../../../../Frameworks
-    "${APP_RESOURCES_DIR}/python/lib/python3.13/lib-dynload/_ssl.cpython-313-darwin.so"
-    COMMAND_ECHO STDOUT
-)
+    execute_process(
+        COMMAND install_name_tool -id "@rpath/${real_name}" "${APP_FRAME_DIR}/${real_name}"
+    )
+
+    set(cur "${dep}")
+    while(IS_SYMLINK "${cur}")
+        get_filename_component(link_name "${cur}" NAME)
+        execute_process(
+            COMMAND readlink "${cur}"
+            OUTPUT_VARIABLE link_target
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+
+        file(REMOVE "${APP_FRAME_DIR}/${link_name}")
+
+        if(IS_ABSOLUTE "${link_target}")
+            execute_process(
+                COMMAND ln -s "${real_name}" "${APP_FRAME_DIR}/${link_name}"
+            )
+            file(REAL_PATH "${link_target}" cur)
+        else()
+            execute_process(
+                COMMAND ln -s "${link_target}" "${APP_FRAME_DIR}/${link_name}"
+            )
+            get_filename_component(cur_dir "${cur}" DIRECTORY)
+            set(cur "${cur_dir}/${link_target}")
+        endif()
+    endwhile()
+
+    # if original basename differs from real basename, add one more symlink
+    if(NOT dep_name STREQUAL real_name)
+        file(REMOVE "${APP_FRAME_DIR}/${dep_name}")
+        execute_process(
+            COMMAND ln -s "${real_name}" "${APP_FRAME_DIR}/${dep_name}"
+        )
+    endif()
+endforeach()
+
+list(REMOVE_DUPLICATES COPIED_REALS)
+list(REMOVE_DUPLICATES COPIED_REAL_NAMES)
+
+message(STATUS "COPIED_REALS = ${COPIED_REALS}")
+
+
+foreach(lib IN LISTS COPIED_REALS)
+    execute_process(
+        COMMAND otool -L "${lib}" OUTPUT_VARIABLE out
+    )
+    string(REPLACE "\n" ";" lines "${out}")
+    foreach(line IN LISTS lines)
+        string(STRIP "${line}" line)
+        if(line MATCHES "^([^ ]+)[ ]+\\(")
+            set(dep "${CMAKE_MATCH_1}")
+
+            if(dep MATCHES "^/System/" OR dep MATCHES "^/usr/lib/")
+                continue()
+            endif()
+            if(dep MATCHES "^@rpath/" OR dep MATCHES "^@loader_path/" OR dep MATCHES "^@executable_path/")
+                continue()
+            endif()
+            if(NOT IS_ABSOLUTE "${dep}")
+                continue()
+            endif()
+
+            file(REAL_PATH "${dep}" dep_real)
+            get_filename_component(dep_real_name "${dep_real}" NAME)
+
+            list(FIND COPIED_REAL_NAMES "${dep_real_name}" found_idx)
+            if(NOT found_idx EQUAL -1)
+                execute_process(
+                    COMMAND install_name_tool -change "${dep}" "@rpath/${dep_real_name}" "${lib}"
+                )
+            endif()
+        endif()
+    endforeach()
+endforeach()
+
+
+foreach(so IN LISTS PY_SO_FILES)
+    execute_process(
+        COMMAND otool -L "${so}" OUTPUT_VARIABLE out
+    )
+    string(REPLACE "\n" ";" lines "${out}")
+    foreach(line IN LISTS lines)
+        string(STRIP "${line}" line)
+        if(line MATCHES "^([^ ]+)[ ]+\\(")
+            set(dep "${CMAKE_MATCH_1}")
+
+            if(dep MATCHES "^/System/" OR dep MATCHES "^/usr/lib/")
+                continue()
+            endif()
+            if(dep MATCHES "^@rpath/" OR dep MATCHES "^@loader_path/" OR dep MATCHES "^@executable_path/")
+                continue()
+            endif()
+            if(NOT IS_ABSOLUTE "${dep}")
+                continue()
+            endif()
+
+            file(REAL_PATH "${dep}" dep_real)
+            get_filename_component(dep_real_name "${dep_real}" NAME)
+
+            list(FIND COPIED_REAL_NAMES "${dep_real_name}" found_idx)
+            if(NOT found_idx EQUAL -1)
+                execute_process(
+                    COMMAND install_name_tool -change "${dep}" "@rpath/${dep_real_name}" "${so}"
+                )
+            endif()
+        endif()
+    endforeach()
+
+    execute_process(COMMAND otool -l "${so}" OUTPUT_VARIABLE lout)
+    if(NOT lout MATCHES "path ${PY_SO_RPATH} ")
+        execute_process(
+            COMMAND install_name_tool -add_rpath "${PY_SO_RPATH}" "${so}"
+        )
+    endif()
+endforeach()
+
 
 # 9 App Info.plist
 file(WRITE "${APP_PLIST}" "<?xml version=\"1.0\" encoding=\"UTF-8\"?>

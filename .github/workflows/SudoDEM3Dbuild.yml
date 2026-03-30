@@ -178,7 +178,6 @@ jobs:
         cmake --build . --config Release --parallel 4
         cmake --install . --config Release
         cmake --build . --target minieigen_install --config Release
-        cmake --build . --target pack_win --config Release
 
     - name: Archive compiled SudoDEM3D on Linux/macOS
       if: runner.os != 'Windows'
