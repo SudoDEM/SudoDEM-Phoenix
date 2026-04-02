@@ -189,18 +189,18 @@ void OpenGLRenderer::initgl(){
 	
 	// Setup shape dispatcher
 	shapeDispatcher.clearMatrix();
-	std::cerr << "DEBUG initgl: shapeFunctorNames has " << shapeFunctorNames.size() << " functors" << std::endl;
+	// std::cerr << "DEBUG initgl: shapeFunctorNames has " << shapeFunctorNames.size() << " functors" << std::endl;
 	for(string& s : shapeFunctorNames) {
-		std::cerr << "DEBUG initgl: Creating shape functor " << s << std::endl;
+		// std::cerr << "DEBUG initgl: Creating shape functor " << s << std::endl;
 		shared_ptr<Functor> f = FunctorCreator::create(s);
 		if (f) {
 			shared_ptr<GlShapeFunctor> typedF = std::dynamic_pointer_cast<GlShapeFunctor>(f);
 			if (typedF) { 
-				std::cerr << "DEBUG initgl: Initializing " << s << std::endl;
+				// std::cerr << "DEBUG initgl: Initializing " << s << std::endl;
 				typedF->initgl(); 
-				std::cerr << "DEBUG initgl: Adding " << s << " to shapeDispatcher" << std::endl;
+				// std::cerr << "DEBUG initgl: Adding " << s << " to shapeDispatcher" << std::endl;
 				shapeDispatcher.add(typedF); 
-				std::cerr << "DEBUG initgl: Added " << s << " successfully" << std::endl;
+				// std::cerr << "DEBUG initgl: Added " << s << " successfully" << std::endl;
 			} else {
 				std::cerr << "DEBUG initgl: Failed to cast " << s << " to GlShapeFunctor" << std::endl;
 			}

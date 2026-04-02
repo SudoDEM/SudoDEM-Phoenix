@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(sudoDEM C CXX)
 
 set(BUILD_STANDALONE_WIN OFF CACHE BOOL "Standalone program WIN")
-set(BUILD_STANDALONE_LINUX ON CACHE BOOL "Standalone program LINUX")
+set(BUILD_STANDALONE_LINUX OFF CACHE BOOL "Standalone program LINUX")
 set(BUILD_STANDALONE_MACOS ON CACHE BOOL "Standalone program MACOS")
 
 SET(CMAKE_SKIP_BUILD_RPATH TRUE)
@@ -691,7 +691,7 @@ if(WIN32 AND BUILD_STANDALONE_WIN)
 
     # Step 3: python
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PYTHON_REAL_DLL_PATH}" "${SUDODEM_EXEC_PATH}/${PYTHON_REAL_DLL_NAME}"
-    COMMAND ${CMAKE_COMMAND} -E create_symlink "${PYTHON_REAL_DLL_NAME}" "${SUDODEM_EXEC_PATH}/python3.dll"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PYTHON_REAL_DLL_PATH}" "${SUDODEM_EXEC_PATH}/python3.dll"
 
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${USER_PYTHON_ROOT}/python.exe" "${SUDODEM_EXEC_PATH}/pythonhome/"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${USER_PYTHON_ROOT}/pythonw.exe" "${SUDODEM_EXEC_PATH}/pythonhome/"
@@ -699,8 +699,9 @@ if(WIN32 AND BUILD_STANDALONE_WIN)
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${USER_PYTHON_ROOT}/DLLs" "${SUDODEM_EXEC_PATH}/pythonhome/DLLs"
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${USER_PYTHON_ROOT}/Lib" "${SUDODEM_EXEC_PATH}/pythonhome/Lib"
 
-    COMMAND ${CMAKE_COMMAND} -E create_symlink "../${PYTHON_REAL_DLL_NAME}" "${SUDODEM_EXEC_PATH}/pythonhome/${PYTHON_REAL_DLL_NAME}"
-    COMMAND ${CMAKE_COMMAND} -E create_symlink "../${PYTHON_REAL_DLL_NAME}" "${SUDODEM_EXEC_PATH}/pythonhome/python3.dll"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PYTHON_REAL_DLL_PATH}" "${SUDODEM_EXEC_PATH}/pythonhome/${PYTHON_REAL_DLL_NAME}"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PYTHON_REAL_DLL_PATH}" "${SUDODEM_EXEC_PATH}/pythonhome/python3.dll"
+
 
   )
 
