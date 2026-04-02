@@ -907,9 +907,6 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND BUILD_STANDALONE_MACOS)
     COMMAND ${CMAKE_COMMAND} -E create_symlink
             "${ZLIB_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libz.1.3.dylib"
 
-    COMMAND ${CMAKE_COMMAND} -E create_symlink
-          "${PYTHON_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libpython3.dylib"
-
     COMMAND install_name_tool -id "@rpath/${BZIP2_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/${BZIP2_REAL_LIB_NAME}"
     COMMAND install_name_tool -id "@rpath/${ZLIB_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/${ZLIB_REAL_LIB_NAME}"
     COMMAND install_name_tool -id "@rpath/${PYTHON_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/${PYTHON_REAL_LIB_NAME}"

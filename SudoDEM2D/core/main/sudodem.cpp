@@ -92,9 +92,29 @@ static bool sudodem_ensure_pip(const filesystem::path& pythonExe)
 
     cout << "pip not found. Trying to bootstrap pip with ensurepip..." << endl;
 
+    #ifdef __APPLE__
+      const char* home = std::getenv("HOME");
+      std::filesystem::path userBase =
+      std::filesystem::path(home) /
+      "Library" / "Application Support" / "SudoDEM2D" / "python3_13";
+      setenv("PYTHONUSERBASE", userBase.string().c_str(), 1);
+
+      std::error_code ec;
+      if (!std::filesystem::exists(userBase, ec))
+      {
+        std::filesystem::create_directories(userBase, ec);
+        if (ec) 
+        {
+          std::cerr << "Failed to create PYTHONUSERBASE directory: "
+          << userBase << std::endl;
+          return 1;
+        }
+      }
+    #endif
+
     rc = sudodem_run_process(
         pythonExe,
-        {"-m", "ensurepip", "--upgrade"}
+        {"-m", "ensurepip", "--upgrade", "--user"}
     );
 
     if (rc != 0) {
@@ -128,7 +148,7 @@ static int sudodem_handle_pkg_command(const char* argv0,
     #elif(__linux__)
         pythonExe = exeDir.parent_path() / "lib" / "3rdlibs" / "pythonhome" / "bin" / "python3";
     #elif(__APPLE__)
-        pythonExe = exeDir.parent_path() / "Frameworks" / "python" / "bin" / "python3";
+        pythonExe = exeDir.parent_path() / "Resources" / "python" / "bin" / "python3";
     #endif
 
     if (!filesystem::exists(pythonExe)) {
@@ -143,13 +163,17 @@ static int sudodem_handle_pkg_command(const char* argv0,
     std::vector<std::string> cmd = {
         "-m", "pip",
         "--disable-pip-version-check",
-        action,
-        pkgName
+        action
     };
+
 
     if (action == "uninstall") {
         cmd.push_back("-y");
+    }else if(action == "install"){
+        cmd.push_back("--user");
     }
+
+    cmd.push_back(pkgName);
 
     return sudodem_run_process(pythonExe, cmd);
 }
@@ -451,7 +475,11 @@ int main( int argc, char **argv )
     std::filesystem::path this_py_dynlib = this_pylib / "lib-dynload";
     std::filesystem::path this_py_sitepkg = this_pylib / "site-packages";
     std::filesystem::path this_py_sudodempkg = this_content_dir / "Resources" / "sudodempython";
-    
+
+    std::filesystem::path this_external_site_packages =
+    std::filesystem::path(std::getenv("HOME")) / "Library" / "Application Support" / "SudoDEM2D" /
+    "python3_13" / "lib"/ "python3.13" / "site-packages";
+
     PyConfig config;
     PyConfig_InitPythonConfig(&config);
 
@@ -487,6 +515,10 @@ int main( int argc, char **argv )
     std::wstring ws6(s6.begin(), s6.end());
     st = PyWideStringList_Append(&config.module_search_paths, ws6.c_str());
     
+    std::string s7 = this_external_site_packages.string();
+    std::wstring ws7(s7.begin(), s7.end());
+    st = PyWideStringList_Append(&config.module_search_paths, ws7.c_str());
+
     
     st = Py_InitializeFromConfig(&config);
     PyEval_InitThreads(); // Initialize threading support for Python

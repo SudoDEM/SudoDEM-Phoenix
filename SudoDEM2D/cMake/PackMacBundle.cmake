@@ -24,6 +24,7 @@ set(SRC_PY_DIR       "${INSTALL_PREFIX}/lib/sudodem/py")
 set(SRC_EXE          "${SRC_BIN_DIR}/${APP_EXE_NAME}")
 
 # Embed python (test on cpython 3.13)
+set(USER_PYTHON_BIN_DIR "${USER_PYTHON_DIR}/bin")
 set(USER_PYTHON_LIB_DIR "${USER_PYTHON_DIR}/lib")
 set(USER_PYTHON_STD_DIR "${USER_PYTHON_LIB_DIR}/python3.13")
 
@@ -42,6 +43,7 @@ set(APP_PLIST           "${APP_CONTENTS_DIR}/Info.plist")
 
 set(APP_PYTHON_ROOT_DIR "${APP_RESOURCES_DIR}/python")
 set(APP_PYTHON_LIB_DIR "${APP_PYTHON_ROOT_DIR}/lib")
+set(APP_PYTHON_BIN_DIR "${APP_PYTHON_ROOT_DIR}/bin")
 set(APP_PYTHON_STD_DIR "${APP_PYTHON_LIB_DIR}/python3.13")
 set(APP_SUDODEM_PYTHON_ROOT_DIR "${APP_RESOURCES_DIR}/sudodempython")
 
@@ -54,16 +56,16 @@ set(APP_ICON_DEST "${INSTALL_PREFIX}/share/${APP_ICON_NAME}.icns")
 # Generate icon
 execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory "${APP_ICONSET_DIR}")
 
-execute_process(COMMAND sips -z 16 16     "${APP_ICON_SOURCE}" --out "${APP_ICONSET_DIR}/icon_16x16.png")
-execute_process(COMMAND sips -z 32 32     "${APP_ICON_SOURCE}" --out "${APP_ICONSET_DIR}/icon_16x16@2x.png")      
-execute_process(COMMAND sips -z 32 32     "${APP_ICON_SOURCE}" --out "${APP_ICONSET_DIR}/icon_32x32.png")
-execute_process(COMMAND sips -z 64 64     "${APP_ICON_SOURCE}" --out "${APP_ICONSET_DIR}/icon_32x32@2x.png")      
-execute_process(COMMAND sips -z 128 128   "${APP_ICON_SOURCE}" --out "${APP_ICONSET_DIR}/icon_128x128.png")
-execute_process(COMMAND sips -z 256 256   "${APP_ICON_SOURCE}" --out "${APP_ICONSET_DIR}/icon_128x128@2x.png")    
-execute_process(COMMAND sips -z 256 256   "${APP_ICON_SOURCE}" --out "${APP_ICONSET_DIR}/icon_256x256.png")
-execute_process(COMMAND sips -z 512 512   "${APP_ICON_SOURCE}" --out "${APP_ICONSET_DIR}/icon_256x256@2x.png")    
-execute_process(COMMAND sips -z 512 512   "${APP_ICON_SOURCE}" --out "${APP_ICONSET_DIR}/icon_512x512.png")       
-execute_process(COMMAND sips -z 1024 1024 "${APP_ICON_SOURCE}" --out "${APP_ICONSET_DIR}/icon_512x512@2x.png")
+execute_process(COMMAND sips -z 16 16     "${APP_ICON_SOURCE}" --out "${APP_ICONSET_DIR}/icon_16x16.png" OUTPUT_QUIET)
+execute_process(COMMAND sips -z 32 32     "${APP_ICON_SOURCE}" --out "${APP_ICONSET_DIR}/icon_16x16@2x.png" OUTPUT_QUIET)      
+execute_process(COMMAND sips -z 32 32     "${APP_ICON_SOURCE}" --out "${APP_ICONSET_DIR}/icon_32x32.png" OUTPUT_QUIET)
+execute_process(COMMAND sips -z 64 64     "${APP_ICON_SOURCE}" --out "${APP_ICONSET_DIR}/icon_32x32@2x.png" OUTPUT_QUIET)      
+execute_process(COMMAND sips -z 128 128   "${APP_ICON_SOURCE}" --out "${APP_ICONSET_DIR}/icon_128x128.png" OUTPUT_QUIET)
+execute_process(COMMAND sips -z 256 256   "${APP_ICON_SOURCE}" --out "${APP_ICONSET_DIR}/icon_128x128@2x.png" OUTPUT_QUIET)    
+execute_process(COMMAND sips -z 256 256   "${APP_ICON_SOURCE}" --out "${APP_ICONSET_DIR}/icon_256x256.png" OUTPUT_QUIET)
+execute_process(COMMAND sips -z 512 512   "${APP_ICON_SOURCE}" --out "${APP_ICONSET_DIR}/icon_256x256@2x.png" OUTPUT_QUIET)    
+execute_process(COMMAND sips -z 512 512   "${APP_ICON_SOURCE}" --out "${APP_ICONSET_DIR}/icon_512x512.png" OUTPUT_QUIET)       
+execute_process(COMMAND sips -z 1024 1024 "${APP_ICON_SOURCE}" --out "${APP_ICONSET_DIR}/icon_512x512@2x.png" OUTPUT_QUIET)
                                                                                                                 
 execute_process(COMMAND iconutil -c icns "${APP_ICONSET_DIR}" -o "${APP_ICON_DEST}")
 execute_process(COMMAND ${CMAKE_COMMAND} -E rm -rf "${APP_ICONSET_DIR}")
@@ -77,13 +79,13 @@ file(MAKE_DIRECTORY "${APP_RESOURCES_DIR}")
 
 file(MAKE_DIRECTORY "${APP_PYTHON_ROOT_DIR}")
 file(MAKE_DIRECTORY "${APP_PYTHON_LIB_DIR}")
+file(MAKE_DIRECTORY "${APP_PYTHON_BIN_DIR}")
 file(MAKE_DIRECTORY "${APP_PYTHON_STD_DIR}")
 file(MAKE_DIRECTORY "${APP_SUDODEM_PYTHON_ROOT_DIR}")
 
 # 1 icon copy
 execute_process(
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${APP_ICON_DEST}" "${APP_RESOURCES_DIR}/"
-    COMMAND_ECHO STDOUT
 )
 
 # 2 preprocess on SudoDEM2D: link symbol changed to @rpath
@@ -101,8 +103,7 @@ foreach(target IN LISTS PROJECT_BINARIES)
         COMMAND otool -L "${target}"
         OUTPUT_VARIABLE OTOOL_OUT
         OUTPUT_STRIP_TRAILING_WHITESPACE
-        COMMAND_ECHO STDOUT
-    )
+   )
 
     string(REPLACE "\n" ";" lines "${OTOOL_OUT}")
 
@@ -123,18 +124,14 @@ foreach(target IN LISTS PROJECT_BINARIES)
 
             if(old_name STREQUAL "libpython3.13.dylib")
                 if(NOT old_path STREQUAL "@rpath/libpython3.13.dylib")
-                    message(STATUS "Patch ${target}: ${old_path} -> @rpath/libpython3.13.dylib")
                     execute_process(
                         COMMAND install_name_tool -change "${old_path}" "@rpath/libpython3.13.dylib" "${target}"
-                        COMMAND_ECHO STDOUT
                     )
                 endif()
             elseif(old_name STREQUAL "libomp.dylib")
                 if(NOT old_path STREQUAL "@rpath/libomp.dylib")
-                    message(STATUS "Patch ${target}: ${old_path} -> @rpath/libomp.dylib")
                     execute_process(
                         COMMAND install_name_tool -change "${old_path}" "@rpath/libomp.dylib" "${target}"
-                        COMMAND_ECHO STDOUT
                     )
                 endif()
             endif()
@@ -157,22 +154,36 @@ file(GLOB _glviewer_file "${SRC_PY_DIR}/sudodem/qt/_GLViewer*")
 execute_process(COMMAND install_name_tool  -add_rpath "@loader_path/../../../../Frameworks"  ${_glviewer_file})
 
 # 4 copy SudoDEM2D C++
-execute_process(COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${SRC_EXE}" "${APP_EXE}"  COMMAND_ECHO STDOUT)
+execute_process(COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${SRC_EXE}" "${APP_EXE}")
 
-execute_process(COMMAND "${CMAKE_COMMAND}" -E copy_directory "${SRC_3RDLIB_DIR}" "${APP_FRAME_DIR}" COMMAND_ECHO STDOUT)
+execute_process(COMMAND "${CMAKE_COMMAND}" -E copy_directory "${SRC_3RDLIB_DIR}" "${APP_FRAME_DIR}")
 
-execute_process(COMMAND "${CMAKE_COMMAND}" -E rename "${SRC_LIB_DIR}/qhull.dylib" "${APP_FRAME_DIR}/qhull.dylib" COMMAND_ECHO STDOUT)
-execute_process(COMMAND "${CMAKE_COMMAND}" -E rename "${SRC_LIB_DIR}/sudodem/libsudodem.dylib" "${APP_FRAME_DIR}/libsudodem.dylib" COMMAND_ECHO STDOUT)
-execute_process(COMMAND "${CMAKE_COMMAND}" -E rename "${SRC_LIB_DIR}/sudodem/voro++.dylib" "${APP_FRAME_DIR}/voro++.dylib" COMMAND_ECHO STDOUT)
-execute_process(COMMAND "${CMAKE_COMMAND}" -E rename "${SRC_LIB_DIR}/sudodem/py/sudodem/qt/lib_GLViewer_core.dylib" "${APP_FRAME_DIR}/lib_GLViewer_core.dylib" COMMAND_ECHO STDOUT)
+execute_process(COMMAND "${CMAKE_COMMAND}" -E rename "${SRC_LIB_DIR}/qhull.dylib" "${APP_FRAME_DIR}/qhull.dylib")
+execute_process(COMMAND "${CMAKE_COMMAND}" -E rename "${SRC_LIB_DIR}/sudodem/libsudodem.dylib" "${APP_FRAME_DIR}/libsudodem.dylib")
+execute_process(COMMAND "${CMAKE_COMMAND}" -E rename "${SRC_LIB_DIR}/sudodem/voro++.dylib" "${APP_FRAME_DIR}/voro++.dylib")
+execute_process(COMMAND "${CMAKE_COMMAND}" -E rename "${SRC_LIB_DIR}/sudodem/py/sudodem/qt/lib_GLViewer_core.dylib" "${APP_FRAME_DIR}/lib_GLViewer_core.dylib")
 
-# 5 copy SudoDEM2D Python
-execute_process(COMMAND "${CMAKE_COMMAND}" -E copy_directory "${SRC_PY_DIR}" "${APP_SUDODEM_PYTHON_ROOT_DIR}" COMMAND_ECHO STDOUT)
+# # 5 copy SudoDEM2D Python
+execute_process(COMMAND "${CMAKE_COMMAND}" -E copy_directory "${SRC_PY_DIR}" "${APP_SUDODEM_PYTHON_ROOT_DIR}")
 
-# 6 copy user python copy python
-execute_process(COMMAND "${CMAKE_COMMAND}" -E copy_directory "${USER_PYTHON_STD_DIR}" "${APP_PYTHON_STD_DIR}" COMMAND_ECHO STDOUT)
+# # 6 copy user python copy python
+execute_process(COMMAND "${CMAKE_COMMAND}" -E copy_directory "${USER_PYTHON_STD_DIR}" "${APP_PYTHON_STD_DIR}")
 
-# 7 copy python module deps lzma, cypto and sssl
+execute_process(COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${USER_PYTHON_BIN_DIR}/python3.13" "${APP_PYTHON_BIN_DIR}/")
+execute_process(COMMAND "${CMAKE_COMMAND}" -E create_symlink "python3.13" "${APP_PYTHON_BIN_DIR}/python3")
+
+execute_process(COMMAND otool -L "${APP_PYTHON_BIN_DIR}/python3.13" OUTPUT_VARIABLE pybinout)
+
+string(REGEX MATCH "(/[^\n\t ]*libpython3\\.13[^ \n\t]*\\.dylib|@rpath/libpython3\\.13[^ \n\t]*\\.dylib|@executable_path/[^\n\t ]*libpython3\\.13[^ \n\t]*\\.dylib|@loader_path/[^\n\t ]*libpython3\\.13[^ \n\t]*\\.dylib)"
+pybinoldlib
+"${pybinout}")
+
+if(pybinoldlib)
+    execute_process(COMMAND install_name_tool -change "${pybinoldlib}" "@rpath/libpython3.13.dylib" "${APP_PYTHON_BIN_DIR}/python3.13")
+endif()
+execute_process(COMMAND install_name_tool -add_rpath "@executable_path/../../../Frameworks" "${APP_PYTHON_BIN_DIR}/python3.13")
+
+# # 7 copy python module deps lzma, cypto and sssl
 set(PY_LIBDYNLOAD_DIR "${APP_PYTHON_STD_DIR}/lib-dynload")
 set(PY_SO_RPATH "@loader_path/../../../../../Frameworks")
 
@@ -205,7 +216,7 @@ foreach(so IN LISTS PY_SO_FILES)
 endforeach()
 list(REMOVE_DUPLICATES ALL_DEPS)
 
-message(STATUS "ALL_DEPS = ${ALL_DEPS}")
+# message(STATUS "ALL_DEPS = ${ALL_DEPS}")
 
 set(COPIED_REALS "")
 set(COPIED_REAL_NAMES "")
@@ -263,7 +274,7 @@ endforeach()
 list(REMOVE_DUPLICATES COPIED_REALS)
 list(REMOVE_DUPLICATES COPIED_REAL_NAMES)
 
-message(STATUS "COPIED_REALS = ${COPIED_REALS}")
+# message(STATUS "COPIED_REALS = ${COPIED_REALS}")
 
 
 foreach(lib IN LISTS COPIED_REALS)
@@ -304,6 +315,8 @@ foreach(so IN LISTS PY_SO_FILES)
     execute_process(
         COMMAND otool -L "${so}" OUTPUT_VARIABLE out
     )
+    set(this_so_changed_to_rpath FALSE)
+
     string(REPLACE "\n" ";" lines "${out}")
     foreach(line IN LISTS lines)
         string(STRIP "${line}" line)
@@ -324,19 +337,114 @@ foreach(so IN LISTS PY_SO_FILES)
             get_filename_component(dep_real_name "${dep_real}" NAME)
 
             list(FIND COPIED_REAL_NAMES "${dep_real_name}" found_idx)
+
             if(NOT found_idx EQUAL -1)
                 execute_process(
                     COMMAND install_name_tool -change "${dep}" "@rpath/${dep_real_name}" "${so}"
                 )
+                set(this_so_changed_to_rpath TRUE)
+
             endif()
         endif()
     endforeach()
 
-    execute_process(COMMAND otool -l "${so}" OUTPUT_VARIABLE lout)
-    if(NOT lout MATCHES "path ${PY_SO_RPATH} ")
-        execute_process(
-            COMMAND install_name_tool -add_rpath "${PY_SO_RPATH}" "${so}"
-        )
+    if(this_so_changed_to_rpath)
+        execute_process(COMMAND otool -l "${so}" OUTPUT_VARIABLE lout ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+        set(existing_rpaths "")
+        string(REPLACE "\n" ";" llines "${lout}")
+
+        set(_expect_path FALSE)
+        foreach(ll IN LISTS llines)
+            string(STRIP "${ll}" ll)
+
+            if(ll STREQUAL "cmd LC_RPATH")
+                set(_expect_path TRUE)
+                continue()
+            endif()
+
+            if(_expect_path AND ll MATCHES "^path (.+) \\(offset [0-9]+\\)$")
+                list(APPEND existing_rpaths "${CMAKE_MATCH_1}")
+                set(_expect_path FALSE)
+            endif()
+        endforeach()
+
+        set(py_so_rpath_present FALSE)
+        set(rpaths_to_delete "")
+
+        foreach(rp IN LISTS existing_rpaths)
+            if(rp STREQUAL "${PY_SO_RPATH}")
+                set(py_so_rpath_present TRUE)
+                continue()
+            endif()
+
+            if(rp MATCHES "^/System/" OR rp MATCHES "^/usr/lib/")
+                continue()
+            endif()
+            if(rp MATCHES "^@loader_path/" OR rp MATCHES "^@executable_path/")
+                continue()
+            endif()
+
+            set(_delete_this FALSE)
+
+            if(IS_ABSOLUTE "${rp}")
+                file(REAL_PATH "${rp}" rp_real)
+            else()
+                set(rp_real "")
+            endif()
+
+            foreach(dep_src IN LISTS ALL_DEPS)
+
+                if(IS_ABSOLUTE "${dep_src}")
+                    file(REAL_PATH "${dep_src}" dep_src_real)
+                else()
+                    set(dep_src_real "")
+                endif()
+
+                get_filename_component(dep_src_dir      "${dep_src}"      DIRECTORY)
+                get_filename_component(dep_src_real_dir "${dep_src_real}" DIRECTORY)
+
+                if(rp STREQUAL "${dep_src_dir}" OR rp STREQUAL "${dep_src_real_dir}" OR
+                  (NOT rp_real STREQUAL "" AND rp_real STREQUAL "${dep_src_real_dir}"))
+                    set(_delete_this TRUE)
+                    break()
+                endif()
+            endforeach()
+
+            if(_delete_this)
+                list(APPEND rpaths_to_delete "${rp}")
+            endif()
+        endforeach()
+
+        foreach(old_rp IN LISTS rpaths_to_delete)
+            execute_process(
+                COMMAND install_name_tool -delete_rpath "${old_rp}" "${so}"
+                RESULT_VARIABLE _del_ret
+                ERROR_VARIABLE  _del_err
+                OUTPUT_QUIET
+                ERROR_STRIP_TRAILING_WHITESPACE
+            )
+            if(_del_ret EQUAL 0)
+                if(old_rp STREQUAL "${PY_SO_RPATH}")
+                    set(py_so_rpath_present FALSE)
+                endif()
+            else()
+                message(STATUS "skip delete_rpath for ${so}: ${_del_err}")
+            endif()
+        endforeach()
+
+        if(NOT py_so_rpath_present)
+            execute_process(
+                COMMAND install_name_tool -add_rpath "${PY_SO_RPATH}" "${so}"
+                RESULT_VARIABLE _add_ret
+                ERROR_VARIABLE  _add_err
+                OUTPUT_QUIET
+                ERROR_STRIP_TRAILING_WHITESPACE
+            )
+            if(NOT _add_ret EQUAL 0)
+                message(STATUS "skip add_rpath for ${so}: ${_add_err}")
+            endif()
+        endif()
     endif()
 endforeach()
 
@@ -368,12 +476,12 @@ file(WRITE "${APP_PLIST}" "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
         </plist>
         ")
 
-# 10 pack Qt
+# # 10 pack Qt
 execute_process(COMMAND chmod +x "${APP_EXE}" COMMAND_ECHO STDOUT)
 
 execute_process(COMMAND "${MACDEPLOYQT_EXECUTABLE}" "${APP_BUNDLE_DIR}" -verbose=2 COMMAND_ECHO STDOUT)
 
-# 11 sign
+# # 11 sign
 if(NOT DEFINED SIGN_IDENTITY)
     set(SIGN_IDENTITY "-")
 endif()
@@ -387,40 +495,6 @@ set(PLUGINS_DIR    "${APP_BUNDLE_DIR}/Contents/PlugIns")
 set(RES_PY_DIR     "${APP_BUNDLE_DIR}/Contents/Resources/python")
 set(MACOS_DIR      "${APP_BUNDLE_DIR}/Contents/MacOS")
 
-message(STATUS "FRAMEWORKS_DIR='${FRAMEWORKS_DIR}'")
-message(STATUS "PLUGINS_DIR='${PLUGINS_DIR}'")
-message(STATUS "RES_PY_DIR='${RES_PY_DIR}'")
-message(STATUS "MACOS_DIR='${MACOS_DIR}'")
-
-if(EXISTS "${APP_BUNDLE_DIR}")
-    message(STATUS "APP_BUNDLE_DIR exists")
-else()
-    message(FATAL_ERROR "APP_BUNDLE_DIR does not exist: ${APP_BUNDLE_DIR}")
-endif()
-
-if(EXISTS "${FRAMEWORKS_DIR}")
-    message(STATUS "FRAMEWORKS_DIR exists")
-else()
-    message(WARNING "FRAMEWORKS_DIR does not exist: ${FRAMEWORKS_DIR}")
-endif()
-
-if(EXISTS "${PLUGINS_DIR}")
-    message(STATUS "PLUGINS_DIR exists")
-else()
-    message(WARNING "PLUGINS_DIR does not exist: ${PLUGINS_DIR}")
-endif()
-
-if(EXISTS "${RES_PY_DIR}")
-    message(STATUS "RES_PY_DIR exists")
-else()
-    message(WARNING "RES_PY_DIR does not exist: ${RES_PY_DIR}")
-endif()
-
-if(EXISTS "${MACOS_DIR}")
-    message(STATUS "MACOS_DIR exists")
-else()
-    message(WARNING "MACOS_DIR does not exist: ${MACOS_DIR}")
-endif()
 
 find_program(CODESIGN_EXECUTABLE codesign REQUIRED)
 message(STATUS "CODESIGN_EXECUTABLE='${CODESIGN_EXECUTABLE}'")
@@ -442,9 +516,7 @@ endfunction()
 
 file(GLOB _fw_dylibs "${FRAMEWORKS_DIR}/*.dylib")
 list(LENGTH _fw_dylibs _fw_dylibs_count)
-message(STATUS "Framework dylib count=${_fw_dylibs_count}")
 foreach(f IN LISTS _fw_dylibs)
-    message(STATUS "candidate framework dylib='${f}'")
     if(NOT IS_SYMLINK "${f}")
         sign_one("${f}")
     else()
@@ -453,15 +525,12 @@ foreach(f IN LISTS _fw_dylibs)
 endforeach()
 
 
-
 file(GLOB _framework_bundles "${FRAMEWORKS_DIR}/*.framework")
 list(LENGTH _framework_bundles _framework_bundles_count)
 message(STATUS "Framework bundle count=${_framework_bundles_count}")
 foreach(fw IN LISTS _framework_bundles)
-    message(STATUS "candidate framework bundle='${fw}'")
     sign_one("${fw}")
 endforeach()
-
 
 
 file(GLOB_RECURSE _frameworks_py_native
@@ -469,9 +538,7 @@ file(GLOB_RECURSE _frameworks_py_native
     "${FRAMEWORKS_DIR}/py/*.dylib"
 )
 list(LENGTH _frameworks_py_native _frameworks_py_native_count)
-message(STATUS "Frameworks/py native count=${_frameworks_py_native_count}")
 foreach(f IN LISTS _frameworks_py_native)
-    message(STATUS "candidate frameworks/py native='${f}'")
     if(NOT IS_SYMLINK "${f}")
         sign_one("${f}")
     else()
@@ -486,9 +553,7 @@ file(GLOB_RECURSE _plugins_native
     "${PLUGINS_DIR}/*.dylib"
 )
 list(LENGTH _plugins_native _plugins_native_count)
-message(STATUS "PlugIns native count=${_plugins_native_count}")
 foreach(f IN LISTS _plugins_native)
-    message(STATUS "candidate plugin native='${f}'")
     if(NOT IS_SYMLINK "${f}")
         sign_one("${f}")
     else()
@@ -503,9 +568,7 @@ file(GLOB_RECURSE _resources_py_native
     "${RES_PY_DIR}/*.dylib"
 )
 list(LENGTH _resources_py_native _resources_py_native_count)
-message(STATUS "Resources/python native count=${_resources_py_native_count}")
 foreach(f IN LISTS _resources_py_native)
-    message(STATUS "candidate resources/python native='${f}'")
     if(NOT IS_SYMLINK "${f}")
         sign_one("${f}")
     else()
@@ -516,9 +579,7 @@ endforeach()
 
 file(GLOB _macos_bins "${MACOS_DIR}/*")
 list(LENGTH _macos_bins _macos_bins_count)
-message(STATUS "MacOS entry count=${_macos_bins_count}")
 foreach(bin IN LISTS _macos_bins)
-    message(STATUS "candidate MacOS entry='${bin}'")
     if(NOT IS_DIRECTORY "${bin}" AND NOT IS_SYMLINK "${bin}")
         sign_one("${bin}")
     else()
@@ -539,9 +600,3 @@ execute_process(
 if(NOT _verify_ret EQUAL 0)
     message(FATAL_ERROR "codesign verify failed")
 endif()
-
-message(STATUS "==== Final otool -L for main executable ====")
-execute_process(
-    COMMAND otool -L "${APP_EXE}"
-    COMMAND_ECHO STDOUT
-)
