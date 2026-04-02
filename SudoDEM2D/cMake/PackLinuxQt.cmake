@@ -23,6 +23,7 @@ else()
     set(_session_type "unknown")
 endif()
 
+MESSAGE(STATUS "Desktop sessoin: ${_session_type}")
 
 if(_session_type STREQUAL "wayland")
     execute_process(

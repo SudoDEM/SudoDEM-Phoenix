@@ -176,6 +176,7 @@ void Controller::updateStatusBar()
     // Check if psutil is available using importlib
     PyRun_SimpleString(
         "import importlib\n"
+        "import importlib.util\n"
         "import __main__\n"
         "spec = importlib.util.find_spec('psutil')\n"
         "if spec is not None:\n"

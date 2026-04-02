@@ -120,15 +120,15 @@ static int sudodem_handle_pkg_command(const char* argv0,
         return 1;
     }
 
-    filesystem::path exeDir = filesystem::absolute(filesystem::path(argv0)).parent_path();
+    filesystem::path exeDir = filesystem::absolute(filesystem::path(argv0)).lexically_normal().parent_path();
     filesystem::path pythonExe;
 
     #ifdef _WIN32
         pythonExe = exeDir / "pythonhome" / "python.exe";
     #elif(__linux__)
-        pythonExe = exeDir.parent_path() / "lib" / "3rdlibs" / "pythonhome" / "python3";
+        pythonExe = exeDir.parent_path() / "lib" / "3rdlibs" / "pythonhome" / "bin" / "python3";
     #elif(__APPLE__)
-        pythonExe = exeDir.parent_path() / "Frameworks" / "python" / "python3";
+        pythonExe = exeDir.parent_path() / "Frameworks" / "python" / "bin" / "python3";
     #endif
 
     if (!filesystem::exists(pythonExe)) {

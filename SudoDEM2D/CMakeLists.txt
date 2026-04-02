@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(sudoDEM C CXX)
 
 set(BUILD_STANDALONE_WIN OFF CACHE BOOL "Standalone program WIN")
-set(BUILD_STANDALONE_LINUX OFF CACHE BOOL "Standalone program LINUX")
+set(BUILD_STANDALONE_LINUX ON CACHE BOOL "Standalone program LINUX")
 set(BUILD_STANDALONE_MACOS ON CACHE BOOL "Standalone program MACOS")
 
 SET(CMAKE_SKIP_BUILD_RPATH TRUE)
@@ -679,8 +679,8 @@ if(WIN32 AND BUILD_STANDALONE_WIN)
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${USER_PYTHON_ROOT}/DLLs" "${SUDODEM_EXEC_PATH}/pythonhome/DLLs"
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${USER_PYTHON_ROOT}/Lib" "${SUDODEM_EXEC_PATH}/pythonhome/Lib"
 
-    COMMAND ${CMAKE_COMMAND} -E create_symlink "${SUDODEM_EXEC_PATH}/${PYTHON_REAL_DLL_NAME}" "${SUDODEM_EXEC_PATH}/pythonhome/${PYTHON_REAL_DLL_NAME}"
-    COMMAND ${CMAKE_COMMAND} -E create_symlink "${SUDODEM_EXEC_PATH}/${PYTHON_REAL_DLL_NAME}" "${SUDODEM_EXEC_PATH}/pythonhome/python3.dll"
+    COMMAND ${CMAKE_COMMAND} -E create_symlink "../${PYTHON_REAL_DLL_NAME}" "${SUDODEM_EXEC_PATH}/pythonhome/${PYTHON_REAL_DLL_NAME}"
+    COMMAND ${CMAKE_COMMAND} -E create_symlink "../${PYTHON_REAL_DLL_NAME}" "${SUDODEM_EXEC_PATH}/pythonhome/python3.dll"
 
   )
 
@@ -761,8 +761,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_STANDALONE_LINUX)
             "${BZIP2_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libbz2.so"
     COMMAND ${CMAKE_COMMAND} -E create_symlink
             "${BZIP2_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libbz2.so.1.0"
-    COMMAND ${CMAKE_COMMAND} -E create_symlink
-            "${PYTHON_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libpython3.so"
+
     COMMAND ${CMAKE_COMMAND} -E create_symlink
             "${PYTHON_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/libpython3.13.so"
     COMMAND ${CMAKE_COMMAND} -E create_symlink
@@ -809,12 +808,17 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND BUILD_STANDALONE_LINUX)
     COMMENT "Linux package -> pack python"
 
     COMMAND ${CMAKE_COMMAND} -E make_directory "${PACK_3RDLIB_DIR}/pythonhome/lib/python3.13"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${PACK_3RDLIB_DIR}/pythonhome/bin"
+
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${USER_PYTHON_ROOT}/lib/python3.13" "${PACK_3RDLIB_DIR}/pythonhome/lib/python3.13"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${USER_PYTHON_ROOT}/bin/python3.13" "${PACK_3RDLIB_DIR}/pythonhome/bin/"
 
     COMMAND ${CMAKE_COMMAND} -E create_symlink
-            "${PACK_3RDLIB_DIR}/${PYTHON_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/pythonhome/libpython3.so"
+            "python3.13" "${PACK_3RDLIB_DIR}/pythonhome/bin/python3"
     COMMAND ${CMAKE_COMMAND} -E create_symlink
-            "${PACK_3RDLIB_DIR}/${PYTHON_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/pythonhome/libpython3.13.so"
+            "../../${PYTHON_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/pythonhome/lib/libpython3.13.so.1.0"
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            "../../${PYTHON_REAL_LIB_NAME}" "${PACK_3RDLIB_DIR}/pythonhome/lib/libpython3.13.so"
   )
 
   add_custom_command(TARGET pack_linux POST_BUILD
