@@ -212,9 +212,7 @@ MESSAGE(STATUS "Using pybind11 for Python bindings")
 
 #===========================================================
 # Find NumPy using modern Python module
-find_package(Python REQUIRED COMPONENTS NumPy)
 INCLUDE_DIRECTORIES(${Python_INCLUDE_DIRS})
-INCLUDE_DIRECTORIES(${Python_NumPy_INCLUDE_DIRS})
 
 #===========================================================
 
@@ -694,6 +692,9 @@ if(WIN32 AND BUILD_STANDALONE_WIN)
     # Step 3: python
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PYTHON_REAL_DLL_PATH}" "${SUDODEM_EXEC_PATH}/${PYTHON_REAL_DLL_NAME}"
     COMMAND ${CMAKE_COMMAND} -E create_symlink "${PYTHON_REAL_DLL_NAME}" "${SUDODEM_EXEC_PATH}/python3.dll"
+
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${USER_PYTHON_ROOT}/python.exe" "${SUDODEM_EXEC_PATH}/pythonhome/"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${USER_PYTHON_ROOT}/pythonw.exe" "${SUDODEM_EXEC_PATH}/pythonhome/"
 
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${USER_PYTHON_ROOT}/DLLs" "${SUDODEM_EXEC_PATH}/pythonhome/DLLs"
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${USER_PYTHON_ROOT}/Lib" "${SUDODEM_EXEC_PATH}/pythonhome/Lib"

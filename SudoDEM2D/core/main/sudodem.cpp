@@ -20,8 +20,139 @@
 static QApplication* g_qApp = nullptr;
 #endif
 
+#ifdef _WIN32
+  #include <process.h>  
+#else
+  #include <unistd.h>    
+  #include <sys/wait.h>  
+#endif
+
 using namespace std;
 
+
+static int sudodem_run_process(const filesystem::path& exe, const std::vector<std::string>& args) 
+{
+    if (!filesystem::exists(exe)) {
+        cerr << "Python executable not found: " << exe.string() << endl;
+        return 1;
+    }
+
+    std::vector<std::string> all;
+    all.push_back(exe.string());
+    for (const auto& a : args) all.push_back(a);
+
+  #ifdef _WIN32
+      std::vector<char*> argvVec;
+      argvVec.reserve(all.size() + 1);
+      for (auto& s : all) argvVec.push_back(const_cast<char*>(s.c_str()));
+      argvVec.push_back(nullptr);
+
+      int rc = _spawnv(_P_WAIT, exe.string().c_str(), argvVec.data());
+      if (rc == -1) {
+          cerr << "Failed to launch: " << exe.string() << endl;
+          return 1;
+      }
+      return rc;
+  #else
+      pid_t pid = fork();
+      if (pid < 0) {
+          cerr << "fork() failed." << endl;
+          return 1;
+      }
+
+      if (pid == 0) {
+          std::vector<char*> argvVec;
+          argvVec.reserve(all.size() + 1);
+          for (auto& s : all) argvVec.push_back(const_cast<char*>(s.c_str()));
+          argvVec.push_back(nullptr);
+
+          execv(exe.string().c_str(), argvVec.data());
+          _exit(127); // exec failed
+      }
+
+      int status = 0;
+      if (waitpid(pid, &status, 0) < 0) {
+          cerr << "waitpid() failed." << endl;
+          return 1;
+      }
+
+      if (WIFEXITED(status)) return WEXITSTATUS(status);
+      return 1;
+  #endif
+}
+
+static bool sudodem_ensure_pip(const filesystem::path& pythonExe) 
+{
+    int rc = sudodem_run_process(
+        pythonExe,
+        {"-m", "pip", "--version"}
+    );
+
+    if (rc == 0) return true;
+
+    cout << "pip not found. Trying to bootstrap pip with ensurepip..." << endl;
+
+    rc = sudodem_run_process(
+        pythonExe,
+        {"-m", "ensurepip", "--upgrade"}
+    );
+
+    if (rc != 0) {
+        cerr << "Failed to install pip via ensurepip." << endl;
+        cerr << "Your bundled Python may not include ensurepip." << endl;
+        return false;
+    }
+
+    rc = sudodem_run_process(
+        pythonExe,
+        {"-m", "pip", "--version"}
+    );
+
+    return (rc == 0);
+}
+
+static int sudodem_handle_pkg_command(const char* argv0,
+                                      const std::string& action,
+                                      const std::string& pkgName) {
+    if (action != "install" && action != "uninstall") {
+        cerr << "Unsupported -pkg action: " << action << endl;
+        cerr << "Supported actions are: install, uninstall" << endl;
+        return 1;
+    }
+
+    filesystem::path exeDir = filesystem::absolute(filesystem::path(argv0)).parent_path();
+    filesystem::path pythonExe;
+
+    #ifdef _WIN32
+        pythonExe = exeDir / "pythonhome" / "python.exe";
+    #elif(__linux__)
+        pythonExe = exeDir.parent_path() / "lib" / "3rdlibs" / "pythonhome" / "python3";
+    #elif(__APPLE__)
+        pythonExe = exeDir.parent_path() / "Frameworks" / "python" / "python3";
+    #endif
+
+    if (!filesystem::exists(pythonExe)) {
+        cerr << "Cannot find bundled Python: " << pythonExe.string() << endl;
+        return 1;
+    }
+
+    if (!sudodem_ensure_pip(pythonExe)) {
+        return 1;
+    }
+
+    std::vector<std::string> cmd = {
+        "-m", "pip",
+        "--disable-pip-version-check",
+        action,
+        pkgName
+    };
+
+    if (action == "uninstall") {
+        cmd.push_back("-y");
+    }
+
+    return sudodem_run_process(pythonExe, cmd);
+}
 
 #ifdef _WIN32
   std::wstring find_python_exe_on_path() {
@@ -275,6 +406,21 @@ int main( int argc, char **argv )
         // script only - runs script and exits, no REPL, no GUI
         useGUI = false;
         scriptOnly = true;
+
+      }else if(strcmp(argv[i], "-pkg") == 0){
+        // usage:
+        //   sudodem -pkg install somepkg
+        //   sudodem -pkg uninstall somepkg
+        if(i + 2 >= argc){
+          cerr << "Usage: sudodem -pkg <install|uninstall> <package>" << endl;
+          exit(1);
+        }
+
+        std::string action = argv[++i];
+        std::string pkgName = argv[++i];
+
+        int rc = sudodem_handle_pkg_command(argv[0], action, pkgName);
+        exit(rc);
       }
       else{
         modulesArgs.push_back(argv[i]);

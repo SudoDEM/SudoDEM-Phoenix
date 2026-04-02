@@ -12,7 +12,6 @@
 #include<sudodem/lib/pyutil/doc_opts.hpp>
 #include<sudodem/pkg/dem/ViscoelasticPM.hpp>
 
-#include<numpy/ndarrayobject.h>
 
 
 ///////zhswee for saving snapshots
@@ -23,7 +22,6 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <pybind11/numpy.h>
 
 namespace py = pybind11;
 
@@ -291,27 +289,38 @@ void wireNoSpheres(){wireSome("noSpheres");}
  *
  * http://numpy.scipy.org/numpydoc/numpy-13.html told me how to use Numeric.array from c
  */
-bool pointInsidePolygon(pybind11::tuple xy, pybind11::array_t<double> vertices){
-	Real testx=xy[0].cast<double>(),testy=xy[1].cast<double>();
-	
-	// Get array info
-	if (vertices.ndim() != 2) throw invalid_argument("Vertices must be a 2D array");
-	if (vertices.shape(1) != 2) throw invalid_argument("Vertices must have 2 columns (x and y)");
-	
-	size_t rows = vertices.shape(0);
-	if (rows < 3) throw invalid_argument("Vertices must have at least 3 rows");
-	
-	// Get raw data pointer
-	auto vert = vertices.unchecked<2>();
-	
-	int i /*current node*/, j/*previous node*/; bool inside=false;
-	for(i=0,j=rows-1; i<rows; j=i++){
-		double vx_i=vert(i,0), vy_i=vert(i,1);
-		double vx_j=vert(j,0), vy_j=vert(j,1);
-		if (((vy_i>testy)!=(vy_j>testy)) && (testx < (vx_j-vx_i) * (testy-vy_i) / (vy_j-vy_i) + vx_i) ) inside=!inside;
+
+bool pointInsidePolygon(pybind11::tuple xy, pybind11::sequence vertices){
+	Real testx = xy[0].cast<double>();
+	Real testy = xy[1].cast<double>();
+
+	size_t rows = vertices.size();
+	if (rows < 3) throw std::invalid_argument("Vertices must have at least 3 points");
+
+	bool inside = false;
+
+	for (size_t i = 0, j = rows - 1; i < rows; j = i++) {
+		pybind11::sequence vi = vertices[i].cast<pybind11::sequence>();
+		pybind11::sequence vj = vertices[j].cast<pybind11::sequence>();
+
+		if (vi.size() != 2 || vj.size() != 2)
+			throw std::invalid_argument("Each vertex must contain exactly 2 values (x, y)");
+
+		double vx_i = vi[0].cast<double>();
+		double vy_i = vi[1].cast<double>();
+		double vx_j = vj[0].cast<double>();
+		double vy_j = vj[1].cast<double>();
+
+		if (((vy_i > testy) != (vy_j > testy)) &&
+		    (testx < (vx_j - vx_i) * (testy - vy_i) / (vy_j - vy_i) + vx_i)) {
+			inside = !inside;
+		}
 	}
+
 	return inside;
 }
+
+
 
 /*! Computing convex hull of a 2d cloud of points passed to the constructor,
 	using Graham scan algorithm.

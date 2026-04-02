@@ -12,7 +12,6 @@
 #include<sudodem/lib/pyutil/doc_opts.hpp>
 #include<cmath>
 
-#include<numpy/ndarrayobject.h>
 #include <chrono> //test function running time
 #include <random>
 
@@ -23,7 +22,6 @@
 using namespace std::chrono;
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <pybind11/numpy.h>
 
 namespace py = pybind11;
 //***********************************************************************************
